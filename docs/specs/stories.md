@@ -386,3 +386,66 @@ Automate PyPI publishing on tagged releases.
   - [x] Tag: `git tag v<version> && git push --tags`
   - [x] GitHub Action builds and publishes automatically
 - [ ] Verify: tag push triggers publish workflow
+
+---
+
+## Phase G: Built-in Retry
+
+### Story G.a: v1.4.0 RetryConfig and RetryHandler [Planned]
+
+Add retry configuration and backoff computation.
+
+- [ ] Add `RetryConfig` dataclass to `_config.py`
+  - [ ] Fields: `max_attempts`, `backoff`, `base_delay`, `max_delay`, `retryable`
+  - [ ] Validation in `__post_init__()`: `max_attempts >= 1`, `backoff` in valid set, `base_delay >= 0`, `max_delay >= base_delay`
+  - [ ] Add `retry` field to `ThrottleConfig`
+  - [ ] Support `retry` in `from_dict()` and `from_env()`
+- [ ] Create `_retry.py` with `RetryHandler`
+  - [ ] `compute_delay(attempt)` — fixed, exponential, exponential_jitter strategies
+  - [ ] `is_retryable(exc)` — delegates to predicate or returns True
+  - [ ] `max_attempts` property
+  - [ ] Injectable `clock` and `rand_fn` for deterministic testing
+- [ ] Export `RetryConfig` from `__init__.py` and add to `__all__`
+- [ ] Create `tests/test_retry.py`
+  - [ ] Test all three backoff strategies with deterministic rand_fn
+  - [ ] Test retryable predicate (custom and default)
+  - [ ] Test validation (invalid max_attempts, invalid backoff, invalid delays)
+  - [ ] Test delay capping at max_delay
+- [ ] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
+- [ ] Bump version to `1.4.0`
+
+### Story G.b: v1.5.0 Throttle Retry Integration [Planned]
+
+Wire retry into the Throttle's `acquire()` and `wrap()` flows.
+
+- [ ] Update `_throttle.py`
+  - [ ] Create `RetryHandler` from config if `retry` is set
+  - [ ] In `wrap()`: retry the wrapped function call on failure
+    - [ ] Check `is_retryable()` before each retry
+    - [ ] Sleep `compute_delay(attempt)` between retries
+    - [ ] Check circuit breaker before each retry attempt
+    - [ ] Emit `retry` event via `on_state_change`
+    - [ ] Only record final failure for throttle deceleration
+  - [ ] Context manager `acquire()`: document that retry applies to `wrap()` only (context manager body cannot be re-entered)
+- [ ] Add retry integration tests to `tests/test_throttle.py`
+  - [ ] `wrap()` retries on failure and succeeds on second attempt
+  - [ ] `wrap()` exhausts retries and records final failure
+  - [ ] Retry respects `retryable` predicate (non-retryable propagates immediately)
+  - [ ] Retry emits `retry` events via `on_state_change`
+  - [ ] Retry + circuit breaker: circuit opens during retry, `CircuitOpenError` propagates
+  - [ ] Retry with `max_attempts=1` behaves like no retry
+  - [ ] Intermediate retry failures do not trigger deceleration
+- [ ] Add retry edge cases to `tests/test_edge_cases.py`
+- [ ] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
+- [ ] Bump version to `1.5.0`
+
+### Story G.c: v1.6.0 Retry Documentation and Polish [Planned]
+
+Update all documentation for the retry feature.
+
+- [ ] Update `README.md` with retry section and examples
+- [ ] Update `CHANGELOG.md` with retry entries
+- [ ] Final full test run: `pytest --cov=gentlify`
+- [ ] Final `mypy --strict src/gentlify`
+- [ ] Final `ruff check src/ tests/`
+- [ ] Bump version to `1.6.0`

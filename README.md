@@ -104,6 +104,46 @@ throttle = Throttle(
 
 After 5 consecutive failures the circuit opens, rejecting requests with `CircuitOpenError` for 30 seconds. It then enters half-open state, allowing 2 probe requests. If those succeed, the circuit closes; if they fail, it re-opens with a doubled delay (capped at 5x).
 
+## Retry
+
+Automatically retry failed requests with configurable backoff — no need for a separate retry library:
+
+```python
+from gentlify import Throttle, RetryConfig
+
+throttle = Throttle(
+    max_concurrency=5,
+    retry=RetryConfig(
+        max_attempts=3,
+        backoff="exponential_jitter",
+        base_delay=1.0,
+        max_delay=60.0,
+    ),
+)
+
+@throttle.wrap
+async def call_api(item):
+    return await httpx.post("/api", json=item)
+```
+
+Retries happen inside the throttled slot, so concurrency accounting stays correct. Only the final failure (after all retries are exhausted) triggers throttle deceleration — intermediate failures just trigger backoff sleep.
+
+Backoff strategies:
+- **`fixed`** — constant delay between retries
+- **`exponential`** — delay doubles each attempt (`base_delay × 2^attempt`, capped at `max_delay`)
+- **`exponential_jitter`** — exponential with random jitter (default, recommended)
+
+You can also filter which exceptions are retryable:
+
+```python
+retry = RetryConfig(
+    max_attempts=3,
+    retryable=lambda exc: isinstance(exc, (TimeoutError, RateLimitError)),
+)
+```
+
+Non-retryable exceptions propagate immediately without further attempts.
+
 ## Configuration
 
 ### From code
@@ -202,6 +242,7 @@ All public types are re-exported from the top-level package:
 | `ThrottleConfig` | Validated configuration dataclass |
 | `TokenBudget` | Token budget configuration |
 | `CircuitBreakerConfig` | Circuit breaker configuration |
+| `RetryConfig` | Retry and backoff configuration |
 | `ThrottleSnapshot` | Read-only state view |
 | `ThrottleState` | Enum: `RUNNING`, `COOLING`, `CIRCUIT_OPEN`, `CLOSED`, `DRAINING` |
 | `ThrottleEvent` | Structured event for state change callbacks |

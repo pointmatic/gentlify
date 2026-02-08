@@ -22,10 +22,11 @@ gentlify is a **Python library** (no CLI) targeting **Python 3.11+** (developed 
 6. **Token-aware budgeting** — Optionally track token (or unit) consumption per time window, not just request count. The term "token" is used because the primary audience is LLM APIs (e.g., Anthropic's 10,000 output tokens/minute, OpenAI's TPM limits), but the mechanism is generic — it can track any countable resource: API credits, bytes transferred, compute units, or weighted request costs. Many APIs enforce resource-consumption limits independently of request-count limits, and a small number of expensive requests can exhaust a resource budget long before the request limit is reached.
 7. **Initial concurrency** — Allow the throttle to start at a concurrency level below the maximum and organically promote via the reacceleration mechanism. This supports conservative cold-start strategies.
 8. **Progress reporting** — Expose task completion progress (percentage, ETA, current concurrency, current dispatch interval) via a typed snapshot object and optional callbacks.
+9. **Built-in retry with backoff** — Optionally retry failed requests inside the throttled slot, with configurable max attempts, backoff strategy (fixed, exponential, exponential+jitter), and retryable predicate. Retries happen *inside* the acquired slot so concurrency accounting stays correct. Intermediate failures trigger backoff sleep but not throttle deceleration — only the final failure (after all retries exhausted) counts as a real failure for the throttle's adaptive logic. Retry is fully optional and disabled by default.
 
 ### Operational Requirements
 
-1. **Error propagation** — gentlify must never swallow exceptions. If a user's function raises, the exception propagates to the caller. gentlify only intercepts failures for its own bookkeeping (recording that a failure occurred) — it does not retry on behalf of the user unless explicitly configured to do so.
+1. **Error propagation** — gentlify must never swallow exceptions. If a user's function raises and retries are not configured (or are exhausted), the exception propagates to the caller. gentlify only intercepts failures for its own bookkeeping (recording that a failure occurred). When retry is enabled, intermediate failures are caught and retried transparently; only the final failure propagates.
 2. **Logging** — Emit structured log events for key state transitions: deceleration, reacceleration, cooling start/end, circuit breaker trips. Use Python's standard `logging` module by default; allow users to plug in their own logger.
 3. **Thread safety** — All state mutations must be safe for concurrent asyncio tasks. No global mutable state — each throttle instance is independent.
 4. **Graceful shutdown** — Provide a mechanism to drain in-flight requests on cancellation rather than hard-stopping.
@@ -46,12 +47,11 @@ gentlify is a **Python library** (no CLI) targeting **Python 3.11+** (developed 
 
 ### Non-goals
 
-1. **Retry logic** — gentlify controls *pacing*, not *retrying*. It does not re-invoke failed requests. Users should pair gentlify with a retry library (e.g., `tenacity`) if they want automatic retries. gentlify's role is to slow down the overall dispatch rate when failures occur.
-2. **HTTP client** — gentlify is transport-agnostic. It does not make HTTP requests itself. Optional integrations provide middleware for popular HTTP clients, but the core library has no network code.
-3. **Persistent state** — Throttle state is in-memory only. It does not persist across process restarts.
-4. **Distributed coordination** — gentlify operates within a single process. Cross-process or cross-machine rate coordination is out of scope.
-5. **Sync support (v1)** — v1 is asyncio-only. A threading-based sync adapter may be added in a future version.
-6. **CLI** — gentlify is a library; it has no command-line interface.
+1. **HTTP client** — gentlify is transport-agnostic. It does not make HTTP requests itself. Optional integrations provide middleware for popular HTTP clients, but the core library has no network code.
+2. **Persistent state** — Throttle state is in-memory only. It does not persist across process restarts.
+3. **Distributed coordination** — gentlify operates within a single process. Cross-process or cross-machine rate coordination is out of scope.
+4. **Sync support (v1)** — v1 is asyncio-only. A threading-based sync adapter may be added in a future version.
+5. **CLI** — gentlify is a library; it has no command-line interface.
 
 ---
 
@@ -82,6 +82,7 @@ gentlify is a **Python library** (no CLI) targeting **Python 3.11+** (developed 
 | `circuit_breaker` | `CircuitBreakerConfig \| None` | `None` | Optional circuit breaker configuration |
 | `on_state_change` | `Callable \| None` | `None` | Callback invoked on deceleration, reacceleration, circuit trips |
 | `on_progress` | `Callable \| None` | `None` | Callback invoked at progress milestones (default: every 10%) |
+| `retry` | `RetryConfig \| None` | `None` | Optional retry configuration (max attempts, backoff, retryable predicate) |
 
 ### Runtime Inputs
 
@@ -244,6 +245,48 @@ async with openai_throttle.acquire():
 
 Each instance maintains its own state (concurrency, interval, failure history, token budget). There is no global shared state.
 
+### FR-12: Built-in Retry
+
+When a `RetryConfig` is provided, failed requests are automatically retried inside the acquired slot:
+
+- **Max attempts:** Total attempts including the initial call (default: 3). Setting to 1 disables retry.
+- **Backoff strategy:** `fixed` (constant delay), `exponential` (delay doubles each attempt, starting from `base_delay`), or `exponential_jitter` (exponential with random jitter added). Default: `exponential_jitter`.
+- **Base delay:** Initial delay between retries in seconds (default: 1.0).
+- **Max delay:** Upper bound on backoff delay (default: 60.0).
+- **Retryable predicate:** Optional callable `(BaseException) -> bool` that determines whether an exception is retryable. Defaults to retrying all exceptions. If the predicate returns `False`, the exception propagates immediately without further retries.
+
+Key design decisions:
+- Retries happen **inside** the acquired slot — the concurrency slot remains held during retries, so the throttle's concurrency accounting is always correct.
+- Intermediate retry failures do **not** trigger throttle deceleration. Only the final failure (after all retries are exhausted) is recorded as a failure for the throttle's adaptive logic.
+- The `on_state_change` callback emits a `retry` event for each retry attempt, including the attempt number, exception, and backoff delay.
+- Retry is fully composable with all other features: token budget, circuit breaker, failure predicate, etc. The circuit breaker is checked before each retry attempt — if the circuit opens during retries, `CircuitOpenError` propagates immediately.
+
+Configuration:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `max_attempts` | `int` | `3` | Total attempts (including initial). Must be ≥ 1. |
+| `backoff` | `str` | `"exponential_jitter"` | `"fixed"`, `"exponential"`, or `"exponential_jitter"` |
+| `base_delay` | `float` | `1.0` | Initial delay between retries (seconds) |
+| `max_delay` | `float` | `60.0` | Maximum backoff delay (seconds) |
+| `retryable` | `Callable \| None` | `None` | Predicate to filter retryable exceptions (None = retry all) |
+
+Usage:
+
+```python
+from gentlify import Throttle, RetryConfig
+
+throttle = Throttle(
+    max_concurrency=5,
+    retry=RetryConfig(max_attempts=3, backoff="exponential_jitter"),
+)
+
+async with throttle.acquire() as slot:
+    result = await call_api(item)  # retried up to 3 times on failure
+```
+
+The decorator API also supports retry — retries are handled transparently inside the `acquire()` context.
+
 ### FR-11: Graceful Shutdown
 
 `throttle.drain()` returns an awaitable that resolves when all in-flight requests complete. This allows clean shutdown:
@@ -357,7 +400,8 @@ The project is considered complete when:
 6. The decorator API and context manager API both work correctly and record success/failure automatically.
 7. `from_dict()` and `from_env()` produce correctly configured instances.
 8. `drain()` and `close()` enable graceful shutdown without dropping in-flight requests.
-9. All tests pass with ≥95% coverage.
-10. `mypy --strict` passes with zero errors.
-11. The library has zero runtime dependencies.
-12. The `py.typed` marker is present and type stubs are complete.
+9. Built-in retry with configurable backoff retries failed requests inside the slot without disrupting throttle accounting.
+10. All tests pass with ≥95% coverage.
+11. `mypy --strict` passes with zero errors.
+12. The library has zero runtime dependencies.
+13. The `py.typed` marker is present and type stubs are complete.

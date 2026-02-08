@@ -81,6 +81,7 @@ gentlify/
 │       ├── _token_bucket.py        # TokenBucket — rolling-window token budget
 │       ├── _circuit_breaker.py     # CircuitBreaker — open/half-open/closed state machine
 │       ├── _progress.py            # ProgressTracker — completion %, ETA, milestones
+│       ├── _retry.py               # RetryHandler — backoff and retry loop
 │       ├── _slot.py                # Slot — context manager yielded by acquire()
 │       ├── _throttle.py            # Throttle — main orchestrator class
 │       └── _exceptions.py          # CircuitOpenError, ThrottleClosed
@@ -94,7 +95,8 @@ gentlify/
     ├── test_progress.py            # ProgressTracker unit tests
     ├── test_throttle.py            # Throttle integration tests (context manager, decorator)
     ├── test_config.py              # from_dict, from_env, validation tests
-    └── test_edge_cases.py          # Edge case and stress tests
+    ├── test_edge_cases.py          # Edge case and stress tests
+    └── test_retry.py               # RetryHandler unit tests
 ```
 
 All internal modules use a leading underscore (`_`) to signal they are private. The public API is defined entirely in `__init__.py`.
@@ -179,6 +181,7 @@ class ThrottleConfig:
     failure_predicate: FailurePredicate | None = None
     token_budget: TokenBudget | None = None
     circuit_breaker: CircuitBreakerConfig | None = None
+    retry: RetryConfig | None = None
     on_state_change: StateChangeCallback | None = None
     on_progress: ProgressCallback | None = None
 ```
@@ -195,6 +198,16 @@ def from_env(prefix: str = "GENTLIFY") -> ThrottleConfig:
     """Build config from environment variables. See features.md for env var mapping."""
 ```
 
+```python
+@dataclass(frozen=True)
+class RetryConfig:
+    max_attempts: int = 3
+    backoff: str = "exponential_jitter"  # "fixed", "exponential", "exponential_jitter"
+    base_delay: float = 1.0
+    max_delay: float = 60.0
+    retryable: Callable[[BaseException], bool] | None = None
+```
+
 Validation (called in `__post_init__`):
 - `max_concurrency >= 1`
 - `initial_concurrency` is `None` or `1 <= initial_concurrency <= max_concurrency`
@@ -208,6 +221,10 @@ Validation (called in `__post_init__`):
 - `total_tasks >= 0`
 - `TokenBudget.max_tokens >= 1`, `TokenBudget.window_seconds > 0`
 - `CircuitBreakerConfig.consecutive_failures >= 1`, `open_duration >= 0`, `half_open_max_calls >= 1`
+- `RetryConfig.max_attempts >= 1`
+- `RetryConfig.backoff` in `{"fixed", "exponential", "exponential_jitter"}`
+- `RetryConfig.base_delay >= 0`
+- `RetryConfig.max_delay >= base_delay`
 
 Raises `ValueError` with a descriptive message on invalid input.
 
@@ -400,6 +417,37 @@ class ProgressTracker:
 
 ETA uses a rolling average of the last 50 task durations (configurable) multiplied by remaining tasks, adjusted by current concurrency.
 
+### `_retry.py` — RetryHandler
+
+Encapsulates the retry loop with backoff computation.
+
+```python
+class RetryHandler:
+    def __init__(
+        self,
+        config: RetryConfig,
+        clock: Clock = time.monotonic,
+        rand_fn: RandFn = random.uniform,
+    ) -> None: ...
+
+    def compute_delay(self, attempt: int) -> float:
+        """Compute backoff delay for the given attempt number (0-indexed)."""
+
+    def is_retryable(self, exc: BaseException) -> bool:
+        """Check if the exception should be retried."""
+
+    @property
+    def max_attempts(self) -> int:
+        """Total attempts including the initial call."""
+```
+
+Backoff computation:
+- **fixed:** `base_delay` for every attempt.
+- **exponential:** `min(base_delay * 2^attempt, max_delay)`.
+- **exponential_jitter:** `uniform(0, min(base_delay * 2^attempt, max_delay))`.
+
+The retry loop itself lives in `_throttle.py`'s `acquire()` method, which calls `RetryHandler` for delay computation and retryable checks.
+
 ### `_slot.py` — Slot
 
 The object yielded by the `acquire()` context manager.
@@ -433,7 +481,8 @@ class Throttle:
 
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[Slot]:
-        """Primary API: acquire a throttled slot."""
+        """Primary API: acquire a throttled slot. If retry is configured,
+        the user's code block is retried on failure."""
 
     def wrap(self, fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         """Decorator API: wrap an async function with acquire()."""
@@ -467,8 +516,20 @@ class Throttle:
 6. Yield `Slot` to user code.
 7. On `__aexit__`:
    - If no exception: call `_handle_success(duration, slot.tokens_reported)`.
-   - If exception: call `_handle_failure(exception)`.
+   - If exception and retry is configured:
+     a. Check `retry_handler.is_retryable(exc)` — if not retryable, fall through to failure.
+     b. For each retry attempt up to `max_attempts - 1`:
+        - Emit `retry` event via `on_state_change`.
+        - Sleep for `retry_handler.compute_delay(attempt)`.
+        - Check circuit breaker — if open, raise `CircuitOpenError`.
+        - Re-yield slot to user code (re-enter the user's context body).
+        - If success: call `_handle_success()` and break.
+        - If failure: continue to next attempt.
+     c. If all retries exhausted: call `_handle_failure(exception)` with the last exception.
+   - If exception and retry is not configured: call `_handle_failure(exception)`.
    - Always: `concurrency_controller.release()`, update progress.
+
+**Note:** Because `acquire()` is an async context manager, retry requires the user's code block to be re-executable. The decorator API (`wrap`) naturally supports this since the wrapped function is a callable. For the context manager API, retry wraps the user's block internally — the slot is re-yielded for each attempt.
 
 #### `_handle_success()`:
 
@@ -518,6 +579,7 @@ All data models are frozen dataclasses for immutability and hashability.
 | `ThrottleConfig` | `_config` | See [Configuration](#_configpy--configuration) | Validated configuration |
 | `TokenBudget` | `_config` | `max_tokens: int`, `window_seconds: float` | Token budget config |
 | `CircuitBreakerConfig` | `_config` | `consecutive_failures: int`, `open_duration: float`, `half_open_max_calls: int` | Circuit breaker config |
+| `RetryConfig` | `_config` | `max_attempts: int`, `backoff: str`, `base_delay: float`, `max_delay: float`, `retryable: Callable \| None` | Retry config |
 | `ThrottleSnapshot` | `_types` | See [Enums, Dataclasses](#_typespy--enums-dataclasses-type-aliases) | Read-only state view |
 | `ThrottleEvent` | `_types` | `kind: str`, `timestamp: float`, `data: dict` | Structured event |
 
@@ -546,7 +608,7 @@ All validation happens in `ThrottleConfig.__post_init__()`. Invalid values raise
 
 ```python
 from gentlify._throttle import Throttle
-from gentlify._config import ThrottleConfig, TokenBudget, CircuitBreakerConfig
+from gentlify._config import ThrottleConfig, TokenBudget, CircuitBreakerConfig, RetryConfig
 from gentlify._types import ThrottleSnapshot, ThrottleState, ThrottleEvent
 from gentlify._exceptions import GentlifyError, CircuitOpenError, ThrottleClosed
 from gentlify._version import __version__
@@ -556,6 +618,7 @@ __all__ = [
     "ThrottleConfig",
     "TokenBudget",
     "CircuitBreakerConfig",
+    "RetryConfig",
     "ThrottleSnapshot",
     "ThrottleState",
     "ThrottleEvent",
@@ -692,12 +755,13 @@ Each internal module has a dedicated test file. Tests use `FakeClock` and determ
 | `test_circuit_breaker.py` | CircuitBreaker: closed→open→half-open→closed, half_open_max_calls, delay doubling |
 | `test_progress.py` | ProgressTracker: completion, milestones, ETA calculation |
 | `test_config.py` | ThrottleConfig validation, from_dict, from_env |
+| `test_retry.py` | RetryHandler: delay computation, retryable predicate, backoff strategies |
 
 ### Integration Tests
 
 | Test File | Covers |
 |-----------|--------|
-| `test_throttle.py` | Full Throttle lifecycle: acquire, success/failure recording, deceleration/reacceleration, context manager, decorator, close/drain, snapshot, callbacks, multiple instances |
+| `test_throttle.py` | Full Throttle lifecycle: acquire, success/failure recording, deceleration/reacceleration, context manager, decorator, close/drain, snapshot, callbacks, multiple instances, retry integration |
 
 ### Edge Case Tests
 
