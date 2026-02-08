@@ -181,25 +181,25 @@ Three-state circuit breaker: closed → open → half-open → closed/open.
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.8.0`
 
-### Story B.e: v0.9.0 ProgressTracker [Planned]
+### Story B.e: v0.9.0 ProgressTracker [Done]
 
 Task completion tracking with ETA and milestone detection.
 
-- [ ] Create `src/gentlify/_progress.py` with copyright header
-  - [ ] `ProgressTracker` class with injectable `clock`
-  - [ ] `record_completion(duration)` — returns `True` if milestone crossed
-  - [ ] `completed`, `percentage`, `eta_seconds` properties
-  - [ ] Rolling average of last 50 durations for ETA
-- [ ] Create `tests/test_progress.py`
-  - [ ] Test completion counting
-  - [ ] Test percentage calculation
-  - [ ] Test milestone detection at 10% intervals
-  - [ ] Test ETA calculation with known durations
-  - [ ] Test zero total_tasks (percentage = 0, ETA = None)
-  - [ ] Test single task completion
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.9.0`
+- [x] Create `src/gentlify/_progress.py` with copyright header
+  - [x] `ProgressTracker` class with injectable `clock`
+  - [x] `record_completion(duration)` — returns `True` if milestone crossed
+  - [x] `completed`, `percentage`, `eta_seconds` properties
+  - [x] Rolling average of last 50 durations for ETA
+- [x] Create `tests/test_progress.py`
+  - [x] Test completion counting
+  - [x] Test percentage calculation
+  - [x] Test milestone detection at 10% intervals
+  - [x] Test ETA calculation with known durations
+  - [x] Test zero total_tasks (percentage = 0, ETA = None)
+  - [x] Test single task completion
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.9.0`
 
 ---
 
