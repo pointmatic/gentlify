@@ -94,28 +94,28 @@ Generic sliding-window tracker — the shared primitive for failure counting and
 
 ## Phase B: Core Services
 
-### Story B.a: v0.5.0 ConcurrencyController [Planned]
+### Story B.a: v0.5.0 ConcurrencyController [Done]
 
 Dynamic concurrency limit via asyncio semaphore with decelerate/reaccelerate.
 
-- [ ] Create `src/gentlify/_concurrency.py` with copyright header
-  - [ ] `ConcurrencyController` class
-  - [ ] `current_limit` and `in_flight` properties
-  - [ ] `acquire()` — async, waits for semaphore
-  - [ ] `release()` — releases semaphore
-  - [ ] `decelerate()` — halves limit (min 1), returns `(old, new)`
-  - [ ] `reaccelerate(safe_ceiling)` — increments by 1, capped at ceiling, returns `(old, new)`
-  - [ ] `resize(new_limit)` — sets exact limit
-- [ ] Create `tests/test_concurrency.py`
-  - [ ] Test acquire/release cycle
-  - [ ] Test concurrency limit enforcement (N+1th acquire blocks)
-  - [ ] Test decelerate halves correctly, floors at 1
-  - [ ] Test reaccelerate increments, respects ceiling
-  - [ ] Test resize to arbitrary value
-  - [ ] Test in_flight count accuracy under concurrent tasks
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.5.0`
+- [x] Create `src/gentlify/_concurrency.py` with copyright header
+  - [x] `ConcurrencyController` class
+  - [x] `current_limit` and `in_flight` properties
+  - [x] `acquire()` — async, waits for semaphore
+  - [x] `release()` — releases semaphore
+  - [x] `decelerate()` — halves limit (min 1), returns `(old, new)`
+  - [x] `reaccelerate(safe_ceiling)` — increments by 1, capped at ceiling, returns `(old, new)`
+  - [x] `resize(new_limit)` — sets exact limit
+- [x] Create `tests/test_concurrency.py`
+  - [x] Test acquire/release cycle
+  - [x] Test concurrency limit enforcement (N+1th acquire blocks)
+  - [x] Test decelerate halves correctly, floors at 1
+  - [x] Test reaccelerate increments, respects ceiling
+  - [x] Test resize to arbitrary value
+  - [x] Test in_flight count accuracy under concurrent tasks
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.5.0`
 
 ### Story B.b: v0.6.0 DispatchGate [Planned]
 
