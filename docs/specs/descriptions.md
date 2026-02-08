@@ -75,3 +75,4 @@ Short blurbs for landing pages and feature grids. Each card has a title and a on
 | `docs/index.html` hero `<p>` | Friendly Brief Description |
 | `docs/index.html` feature grid | Feature Cards |
 | `docs/specs/features.md` line 1 | One-liner + Long Tagline |
+| (GitHub Repository) | One-liner + ":" + Long Tagline |

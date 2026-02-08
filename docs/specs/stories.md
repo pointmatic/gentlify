@@ -457,3 +457,15 @@ Fix `ruff format --check` CI failures introduced in Phase G.
 - [x] Run `ruff format` on `_config.py`, `_throttle.py`, `test_retry.py`
 - [x] Verify: `ruff format --check`, `ruff check`, `mypy --strict`, `pytest` all pass
 - [x] Bump version to `1.6.1`
+
+### Story G.e: v1.6.2 Minor Description Polish [Done]
+
+Improve descriptions to be more concise and clear.
+
+- [x] Update `README.md`
+- [x] Update `docs/index.html`
+- [x] Update `docs/specs/descriptions.md`
+- [x] Update `docs/specs/features.md`
+- [x] Update `pyproject.toml`
+- [x] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
+- [x] Bump version to `1.6.2`
