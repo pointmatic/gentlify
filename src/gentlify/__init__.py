@@ -14,6 +14,7 @@
 
 from gentlify._config import CircuitBreakerConfig, ThrottleConfig, TokenBudget
 from gentlify._exceptions import CircuitOpenError, GentlifyError, ThrottleClosed
+from gentlify._throttle import Throttle
 from gentlify._types import (
     ThrottleEvent,
     ThrottleSnapshot,
@@ -26,6 +27,7 @@ __all__ = [
     "CircuitBreakerConfig",
     "CircuitOpenError",
     "GentlifyError",
+    "Throttle",
     "ThrottleClosed",
     "ThrottleConfig",
     "ThrottleEvent",

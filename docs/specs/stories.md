@@ -205,37 +205,37 @@ Task completion tracking with ETA and milestone detection.
 
 ## Phase C: Pipeline & Orchestration
 
-### Story C.a: v0.10.0 Slot and Throttle Core [Planned]
+### Story C.a: v0.10.0 Slot and Throttle Core [Done]
 
 Wire all components together into the `Throttle` orchestrator with `acquire()` context manager.
 
-- [ ] Create `src/gentlify/_slot.py` with copyright header
-  - [ ] `Slot` class with `record_tokens(count)` and `tokens_reported` property
-- [ ] Create `src/gentlify/_throttle.py` with copyright header
-  - [ ] `Throttle.__init__(**kwargs)` — builds `ThrottleConfig`, instantiates all sub-components
-  - [ ] `acquire()` async context manager — full flow (check state, circuit breaker, semaphore, dispatch gate, token budget, yield slot, handle success/failure, release)
-  - [ ] `_handle_success()` — circuit breaker, cooling check, ceiling decay, token recording, progress
-  - [ ] `_handle_failure()` — failure predicate, window record, circuit breaker, deceleration logic
-  - [ ] `snapshot()` — assembles `ThrottleSnapshot` from sub-components
-  - [ ] `record_success()`, `record_failure()`, `record_tokens()` — public manual methods
-  - [ ] Logging for state transitions
-- [ ] Update `src/gentlify/__init__.py` to re-export `Throttle`
-- [ ] Create `tests/test_throttle.py`
-  - [ ] Test basic acquire/release cycle (success path)
-  - [ ] Test failure recording triggers deceleration
-  - [ ] Test reacceleration after cooling period
-  - [ ] Test safe ceiling enforcement
-  - [ ] Test safe ceiling decay
-  - [ ] Test snapshot returns correct state
-  - [ ] Test failure_predicate filtering
-  - [ ] Test on_state_change callback fires on deceleration/reacceleration
-  - [ ] Test on_progress callback fires at milestones
-  - [ ] Test token budget integration (acquire blocks when exhausted)
-  - [ ] Test circuit breaker integration (acquire raises CircuitOpenError)
-  - [ ] Test multiple independent throttle instances
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.10.0`
+- [x] Create `src/gentlify/_slot.py` with copyright header
+  - [x] `Slot` class with `record_tokens(count)` and `tokens_reported` property
+- [x] Create `src/gentlify/_throttle.py` with copyright header
+  - [x] `Throttle.__init__(**kwargs)` — builds `ThrottleConfig`, instantiates all sub-components
+  - [x] `acquire()` async context manager — full flow (check state, circuit breaker, semaphore, dispatch gate, token budget, yield slot, handle success/failure, release)
+  - [x] `_handle_success()` — circuit breaker, cooling check, ceiling decay, token recording, progress
+  - [x] `_handle_failure()` — failure predicate, window record, circuit breaker, deceleration logic
+  - [x] `snapshot()` — assembles `ThrottleSnapshot` from sub-components
+  - [x] `record_success()`, `record_failure()`, `record_tokens()` — public manual methods
+  - [x] Logging for state transitions
+- [x] Update `src/gentlify/__init__.py` to re-export `Throttle`
+- [x] Create `tests/test_throttle.py`
+  - [x] Test basic acquire/release cycle (success path)
+  - [x] Test failure recording triggers deceleration
+  - [x] Test reacceleration after cooling period
+  - [x] Test safe ceiling enforcement
+  - [x] Test safe ceiling decay
+  - [x] Test snapshot returns correct state
+  - [x] Test failure_predicate filtering
+  - [x] Test on_state_change callback fires on deceleration/reacceleration
+  - [x] Test on_progress callback fires at milestones
+  - [x] Test token budget integration (acquire blocks when exhausted)
+  - [x] Test circuit breaker integration (acquire raises CircuitOpenError)
+  - [x] Test multiple independent throttle instances
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.10.0`
 
 ### Story C.b: v0.11.0 Decorator API and Graceful Shutdown [Planned]
 
