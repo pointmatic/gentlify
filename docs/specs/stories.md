@@ -29,24 +29,24 @@ Minimal runnable package — proves the build toolchain works end to end.
 - [x] Verify: `mypy --strict src/gentlify` passes
 - [x] Verify: `ruff check src/ tests/` passes
 
-### Story A.b: v0.2.0 Types and Exceptions [Planned]
+### Story A.b: v0.2.0 Types and Exceptions [Done]
 
 Define the foundational types, enums, and exceptions used throughout the library.
 
-- [ ] Create `src/gentlify/_types.py` with copyright header
-  - [ ] `ThrottleState` enum: `RUNNING`, `COOLING`, `CIRCUIT_OPEN`, `CLOSED`, `DRAINING`
-  - [ ] `ThrottleSnapshot` frozen dataclass (all fields from tech spec)
-  - [ ] `ThrottleEvent` frozen dataclass (`kind`, `timestamp`, `data`)
-  - [ ] Type aliases: `FailurePredicate`, `StateChangeCallback`, `ProgressCallback`, `Clock`, `RandFn`
-- [ ] Create `src/gentlify/_exceptions.py` with copyright header
-  - [ ] `GentlifyError(Exception)`
-  - [ ] `CircuitOpenError(GentlifyError)` with `retry_after: float`
-  - [ ] `ThrottleClosed(GentlifyError)`
-- [ ] Update `src/gentlify/__init__.py` to re-export all public types and exceptions
-- [ ] Create `tests/test_types.py` — verify enum values, dataclass immutability, exception hierarchy
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.2.0`
+- [x] Create `src/gentlify/_types.py` with copyright header
+  - [x] `ThrottleState` enum: `RUNNING`, `COOLING`, `CIRCUIT_OPEN`, `CLOSED`, `DRAINING`
+  - [x] `ThrottleSnapshot` frozen dataclass (all fields from tech spec)
+  - [x] `ThrottleEvent` frozen dataclass (`kind`, `timestamp`, `data`)
+  - [x] Type aliases: `FailurePredicate`, `StateChangeCallback`, `ProgressCallback`, `Clock`, `RandFn`
+- [x] Create `src/gentlify/_exceptions.py` with copyright header
+  - [x] `GentlifyError(Exception)`
+  - [x] `CircuitOpenError(GentlifyError)` with `retry_after: float`
+  - [x] `ThrottleClosed(GentlifyError)`
+- [x] Update `src/gentlify/__init__.py` to re-export all public types and exceptions
+- [x] Create `tests/test_types.py` — verify enum values, dataclass immutability, exception hierarchy
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.2.0`
 
 ### Story A.c: v0.3.0 Configuration and Validation [Planned]
 

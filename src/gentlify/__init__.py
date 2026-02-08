@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from gentlify._exceptions import CircuitOpenError, GentlifyError, ThrottleClosed
+from gentlify._types import (
+    ThrottleEvent,
+    ThrottleSnapshot,
+    ThrottleState,
+)
 from gentlify._version import __version__
 
-__all__ = ["__version__"]
+__all__ = [
+    "__version__",
+    "CircuitOpenError",
+    "GentlifyError",
+    "ThrottleClosed",
+    "ThrottleEvent",
+    "ThrottleSnapshot",
+    "ThrottleState",
+]
