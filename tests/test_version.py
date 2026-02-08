@@ -20,4 +20,4 @@ def test_version_is_string() -> None:
 
 
 def test_version_value() -> None:
-    assert gentlify.__version__ == "0.6.0"
+    assert gentlify.__version__ == "0.7.0"

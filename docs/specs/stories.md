@@ -137,25 +137,25 @@ Dispatch interval enforcement with stochastic jitter.
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.6.0`
 
-### Story B.c: v0.7.0 TokenBucket [Planned]
+### Story B.c: v0.7.0 TokenBucket [Done]
 
 Rolling-window token budget tracker.
 
-- [ ] Create `src/gentlify/_token_bucket.py` with copyright header
-  - [ ] `TokenBucket` class with injectable `clock`
-  - [ ] `consume(tokens)` — records consumption
-  - [ ] `tokens_used()` — current window usage
-  - [ ] `tokens_remaining()` — budget minus used
-  - [ ] `wait_for_budget(tokens)` — blocks until budget available
-- [ ] Create `tests/test_token_bucket.py`
-  - [ ] Test consume and tokens_used within window
-  - [ ] Test tokens_remaining calculation
-  - [ ] Test window rollover — old tokens expire
-  - [ ] Test wait_for_budget blocks and resumes (with FakeClock)
-  - [ ] Test budget exhaustion then refill
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.7.0`
+- [x] Create `src/gentlify/_token_bucket.py` with copyright header
+  - [x] `TokenBucket` class with injectable `clock`
+  - [x] `consume(tokens)` — records consumption
+  - [x] `tokens_used()` — current window usage
+  - [x] `tokens_remaining()` — budget minus used
+  - [x] `wait_for_budget(tokens)` — blocks until budget available
+- [x] Create `tests/test_token_bucket.py`
+  - [x] Test consume and tokens_used within window
+  - [x] Test tokens_remaining calculation
+  - [x] Test window rollover — old tokens expire
+  - [x] Test wait_for_budget blocks and resumes (with FakeClock)
+  - [x] Test budget exhaustion then refill
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.7.0`
 
 ### Story B.d: v0.8.0 CircuitBreaker [Planned]
 
