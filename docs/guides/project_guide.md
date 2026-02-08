@@ -97,6 +97,21 @@ When creating the project's package manifest (e.g. `pyproject.toml`, `package.js
 - The `license` field must match the `LICENSE` file (use the SPDX identifier).
 - Include the copyright holder in the authors/maintainers field.
 
+### README Badges
+
+When a `README.md` is created or updated, include all applicable badges at the top of the file (below the project title). Choose from the following based on what applies to the project:
+
+| Badge | When to include | Example source |
+|-------|----------------|----------------|
+| **CI status** | If CI is configured (GitHub Actions, etc.) | GitHub Actions badge URL |
+| **Package version** | If published to a registry (PyPI, npm, crates.io) | `shields.io/pypi/v/...` |
+| **Language version** | If the package specifies supported versions | `shields.io/pypi/pyversions/...` |
+| **License** | Always (if a LICENSE file exists) | `shields.io/pypi/l/...` or `shields.io/github/license/...` |
+| **Typed** | If the project ships type stubs or a `py.typed` marker | Static `shields.io` badge |
+| **Coverage** | If a coverage service is configured (Codecov, Coveralls) | Codecov/Coveralls badge URL |
+
+Use dynamic badges from the package registry (e.g. `shields.io/pypi/...`) when the package is published. Before publication, use static `shields.io` badges or omit registry-dependent badges. Always include the **License** badge. Add badges proactively — do not wait for the developer to ask.
+
 ---
 
 ## Step 1: Features Document (`docs/specs/features.md`)

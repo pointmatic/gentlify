@@ -346,16 +346,16 @@ Create a changelog summarizing all changes.
 
 ## Phase F: CI/CD & Automation
 
-### Story F.a: v1.1.0 GitHub Actions CI [Planned]
+### Story F.a: v1.1.0 GitHub Actions CI [Done]
 
 Set up continuous integration with GitHub Actions.
 
-- [ ] Create `.github/workflows/ci.yml`
-  - [ ] Trigger on push to `main` and on pull requests
-  - [ ] Matrix: Python 3.11, 3.12, 3.13, 3.14
-  - [ ] Steps: checkout, setup-python, install dev deps, `ruff check`, `ruff format --check`, `mypy --strict src/gentlify`, `pytest --cov=gentlify`
-  - [ ] Upload coverage report as artifact
-- [ ] Add CI status badge to `README.md`
+- [x] Create `.github/workflows/ci.yml`
+  - [x] Trigger on push to `main` and on pull requests
+  - [x] Matrix: Python 3.11, 3.12, 3.13, 3.14
+  - [x] Steps: checkout, setup-python, install dev deps, `ruff check`, `ruff format --check`, `mypy --strict src/gentlify`, `pytest --cov=gentlify`
+  - [x] Upload coverage report as artifact
+- [x] Add CI status badge to `README.md`
 - [ ] Verify: push to repo triggers workflow and passes
 
 ### Story F.b: v1.2.0 Dynamic Coverage Badge [Planned]

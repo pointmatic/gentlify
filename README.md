@@ -1,5 +1,11 @@
 # gentlify
 
+[![CI](https://github.com/pointmatic/gentlify/actions/workflows/ci.yml/badge.svg)](https://github.com/pointmatic/gentlify/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/gentlify)](https://pypi.org/project/gentlify/)
+[![Python](https://img.shields.io/pypi/pyversions/gentlify)](https://pypi.org/project/gentlify/)
+[![License](https://img.shields.io/pypi/l/gentlify)](https://github.com/pointmatic/gentlify/blob/main/LICENSE)
+[![Typed](https://img.shields.io/badge/typed-yes-blue)](https://peps.python.org/pep-0561/)
+
 Adaptive async rate limiting for Python — closed-loop feedback control for API concurrency.
 
 **Zero dependencies. Asyncio-native. Fully typed.**
