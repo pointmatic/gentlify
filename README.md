@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/pypi/l/gentlify)](https://github.com/pointmatic/gentlify/blob/main/LICENSE)
 [![Typed](https://img.shields.io/badge/typed-yes-blue)](https://peps.python.org/pep-0561/)
 
-Adaptive async rate limiting for Python — closed-loop feedback control for API concurrency.
+Adaptive async rate limiting for Python, closed-loop feedback control for API concurrency.
 
 **Zero dependencies. Asyncio-native. Fully typed.**
 

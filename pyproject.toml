@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "gentlify"
 version = "1.6.1"
-description = "Adaptive async rate limiting for Python — closed-loop feedback control for API concurrency."
+description = "Adaptive async rate limiting for Python, closed-loop feedback control for API concurrency."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [
     { name = "Pointmatic" },
 ]
-keywords = ["async", "rate-limiting", "concurrency", "throttle", "asyncio"]
+keywords = ["async", "rate-limiting", "concurrency", "throttle", "asyncio", "retry", "backoff", "circuit-breaker"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: AsyncIO",
