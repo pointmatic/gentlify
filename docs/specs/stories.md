@@ -157,29 +157,29 @@ Rolling-window token budget tracker.
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.7.0`
 
-### Story B.d: v0.8.0 CircuitBreaker [Planned]
+### Story B.d: v0.8.0 CircuitBreaker [Done]
 
 Three-state circuit breaker: closed → open → half-open → closed/open.
 
-- [ ] Create `src/gentlify/_circuit_breaker.py` with copyright header
-  - [ ] `CircuitBreaker` class with injectable `clock`
-  - [ ] `state` property
-  - [ ] `check()` — raises `CircuitOpenError` if open, allows probes if half-open
-  - [ ] `record_success()` — closes circuit if half-open threshold met
-  - [ ] `record_failure()` — opens circuit if consecutive threshold exceeded
-  - [ ] `consecutive_failures` and `half_open_successes` properties
-  - [ ] Delay doubling on half-open → open, capped at 5× `open_duration`
-- [ ] Create `tests/test_circuit_breaker.py`
-  - [ ] Test closed → open after N consecutive failures
-  - [ ] Test open → half-open after delay expires
-  - [ ] Test half-open → closed after `half_open_max_calls` successes
-  - [ ] Test half-open → open on failure (delay doubles)
-  - [ ] Test delay cap at 5× open_duration
-  - [ ] Test `check()` raises `CircuitOpenError` with correct `retry_after`
-  - [ ] Test success resets consecutive failure count
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.8.0`
+- [x] Create `src/gentlify/_circuit_breaker.py` with copyright header
+  - [x] `CircuitBreaker` class with injectable `clock`
+  - [x] `state` property
+  - [x] `check()` — raises `CircuitOpenError` if open, allows probes if half-open
+  - [x] `record_success()` — closes circuit if half-open threshold met
+  - [x] `record_failure()` — opens circuit if consecutive threshold exceeded
+  - [x] `consecutive_failures` and `half_open_successes` properties
+  - [x] Delay doubling on half-open → open, capped at 5× `open_duration`
+- [x] Create `tests/test_circuit_breaker.py`
+  - [x] Test closed → open after N consecutive failures
+  - [x] Test open → half-open after delay expires
+  - [x] Test half-open → closed after `half_open_max_calls` successes
+  - [x] Test half-open → open on failure (delay doubles)
+  - [x] Test delay cap at 5× open_duration
+  - [x] Test `check()` raises `CircuitOpenError` with correct `retry_after`
+  - [x] Test success resets consecutive failure count
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.8.0`
 
 ### Story B.e: v0.9.0 ProgressTracker [Planned]
 
