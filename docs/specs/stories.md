@@ -117,25 +117,25 @@ Dynamic concurrency limit via asyncio semaphore with decelerate/reaccelerate.
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.5.0`
 
-### Story B.b: v0.6.0 DispatchGate [Planned]
+### Story B.b: v0.6.0 DispatchGate [Done]
 
 Dispatch interval enforcement with stochastic jitter.
 
-- [ ] Create `src/gentlify/_dispatch.py` with copyright header
-  - [ ] `DispatchGate` class with injectable `clock` and `rand_fn`
-  - [ ] `interval` property
-  - [ ] `wait()` — enforces interval + jitter, updates `last_dispatch`
-  - [ ] `decelerate(max_interval)` — doubles interval, capped
-  - [ ] `reaccelerate(min_interval)` — halves interval, floored
-- [ ] Create `tests/test_dispatch.py`
-  - [ ] Test wait enforces minimum interval (with FakeClock)
-  - [ ] Test jitter is within expected bounds
-  - [ ] Test decelerate doubles, caps at max
-  - [ ] Test reaccelerate halves, floors at min
-  - [ ] Test rapid sequential waits respect interval
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.6.0`
+- [x] Create `src/gentlify/_dispatch.py` with copyright header
+  - [x] `DispatchGate` class with injectable `clock` and `rand_fn`
+  - [x] `interval` property
+  - [x] `wait()` — enforces interval + jitter, updates `last_dispatch`
+  - [x] `decelerate(max_interval)` — doubles interval, capped
+  - [x] `reaccelerate(min_interval)` — halves interval, floored
+- [x] Create `tests/test_dispatch.py`
+  - [x] Test wait enforces minimum interval (with FakeClock)
+  - [x] Test jitter is within expected bounds
+  - [x] Test decelerate doubles, caps at max
+  - [x] Test reaccelerate halves, floors at min
+  - [x] Test rapid sequential waits respect interval
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.6.0`
 
 ### Story B.c: v0.7.0 TokenBucket [Planned]
 
