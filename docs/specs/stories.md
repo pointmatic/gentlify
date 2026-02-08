@@ -335,12 +335,12 @@ Complete documentation and prepare for PyPI release.
 - [x] Final `ruff check src/ tests/` (all passed)
 - [x] Bump version to `1.0.0`
 
-### Story E.b: CHANGELOG [Planned]
+### Story E.b: CHANGELOG [Done]
 
 Create a changelog summarizing all changes.
 
-- [ ] Create `CHANGELOG.md` with entries for v0.1.0 through v1.0.0
-- [ ] Follow Keep a Changelog format
+- [x] Create `CHANGELOG.md` with entries for v0.1.0 through v1.0.0
+- [x] Follow Keep a Changelog format
 
 ---
 
