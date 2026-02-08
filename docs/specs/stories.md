@@ -70,25 +70,25 @@ Configuration dataclasses with validation, `from_dict()`, and `from_env()` facto
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.3.0`
 
-### Story A.d: v0.4.0 SlidingWindow [Planned]
+### Story A.d: v0.4.0 SlidingWindow [Done]
 
 Generic sliding-window tracker — the shared primitive for failure counting and token budgeting.
 
-- [ ] Create `src/gentlify/_window.py` with copyright header
-  - [ ] `SlidingWindow` class with `__init__`, `record`, `total`, `count`, `clear`
-  - [ ] Injectable `clock` parameter
-  - [ ] Lazy pruning on `total()` and `count()`
-- [ ] Create `tests/test_window.py`
-  - [ ] Test record and count within window
-  - [ ] Test expiry — entries outside window are pruned
-  - [ ] Test total — sum of values within window
-  - [ ] Test clear — removes all entries
-  - [ ] Test with FakeClock — advance time and verify pruning
-- [ ] Create `tests/conftest.py` with `FakeClock` class and `fake_clock` fixture
-  - [ ] Also add `fixed_random` fixture
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.4.0`
+- [x] Create `src/gentlify/_window.py` with copyright header
+  - [x] `SlidingWindow` class with `__init__`, `record`, `total`, `count`, `clear`
+  - [x] Injectable `clock` parameter
+  - [x] Lazy pruning on `total()` and `count()`
+- [x] Create `tests/test_window.py`
+  - [x] Test record and count within window
+  - [x] Test expiry — entries outside window are pruned
+  - [x] Test total — sum of values within window
+  - [x] Test clear — removes all entries
+  - [x] Test with FakeClock — advance time and verify pruning
+- [x] Create `tests/conftest.py` with `FakeClock` class and `fake_clock` fixture
+  - [x] Also add `fixed_random` fixture
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.4.0`
 
 ---
 
