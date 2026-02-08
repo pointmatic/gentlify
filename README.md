@@ -1,6 +1,7 @@
 # gentlify
 
 [![CI](https://github.com/pointmatic/gentlify/actions/workflows/ci.yml/badge.svg)](https://github.com/pointmatic/gentlify/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pointmatic/gentlify/graph/badge.svg)](https://codecov.io/gh/pointmatic/gentlify)
 [![PyPI](https://img.shields.io/pypi/v/gentlify)](https://pypi.org/project/gentlify/)
 [![Python](https://img.shields.io/pypi/pyversions/gentlify)](https://pypi.org/project/gentlify/)
 [![License](https://img.shields.io/pypi/l/gentlify)](https://github.com/pointmatic/gentlify/blob/main/LICENSE)

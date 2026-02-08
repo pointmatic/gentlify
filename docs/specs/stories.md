@@ -356,17 +356,20 @@ Set up continuous integration with GitHub Actions.
   - [x] Steps: checkout, setup-python, install dev deps, `ruff check`, `ruff format --check`, `mypy --strict src/gentlify`, `pytest --cov=gentlify`
   - [x] Upload coverage report as artifact
 - [x] Add CI status badge to `README.md`
-- [ ] Verify: push to repo triggers workflow and passes
+- [x] Add coverage badge to `README.md`
+- [x] Add license badge to `README.md`
+- [x] Add typed badge to `README.md`
+- [x] Verify: push to repo triggers workflow and passes
 
-### Story F.b: v1.2.0 Dynamic Coverage Badge [Planned]
+### Story F.b: v1.2.0 Dynamic Coverage Badge [Done]
 
 Add a dynamic code coverage badge using Codecov or Coveralls.
 
-- [ ] Choose coverage service (Codecov recommended for open-source)
-- [ ] Add `codecov` upload step to `.github/workflows/ci.yml`
-  - [ ] Generate coverage XML: `pytest --cov=gentlify --cov-report=xml`
-  - [ ] Upload via `codecov/codecov-action@v4`
-- [ ] Add coverage badge to `README.md` (e.g. `[![codecov](https://codecov.io/gh/<org>/<repo>/...)]`)
+- [x] Choose coverage service (Codecov recommended for open-source)
+- [x] Add `codecov` upload step to `.github/workflows/ci.yml`
+  - [x] Generate coverage XML: `pytest --cov=gentlify --cov-report=xml`
+  - [x] Upload via `codecov/codecov-action@v4`
+- [x] Add coverage badge to `README.md` (e.g. `[![codecov](https://codecov.io/gh/<org>/<repo>/...)]`)
 - [ ] Verify: coverage report appears on Codecov dashboard after push
 
 ### Story F.c: v1.3.0 Release Automation [Planned]
