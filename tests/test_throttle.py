@@ -21,6 +21,7 @@ import pytest
 from gentlify import (
     CircuitBreakerConfig,
     CircuitOpenError,
+    RetryConfig,
     Throttle,
     ThrottleClosed,
     ThrottleEvent,
@@ -450,3 +451,201 @@ class TestDrain:
         t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
         await t.drain()
         assert t.snapshot().state == ThrottleState.CLOSED
+
+
+class TestRetryIntegration:
+    async def test_wrap_retries_and_succeeds(self) -> None:
+        """wrap() retries on failure and succeeds on second attempt."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        @t.wrap
+        async def flaky() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 2:
+                raise RuntimeError("transient")
+            return "ok"
+
+        result = await flaky()
+        assert result == "ok"
+        assert call_count == 2
+        # Success path — completed_tasks incremented
+        assert t.snapshot().completed_tasks == 1
+
+    async def test_wrap_exhausts_retries(self) -> None:
+        """wrap() exhausts retries and records final failure."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=10,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            failure_threshold=1,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        @t.wrap
+        async def always_fail() -> None:
+            nonlocal call_count
+            call_count += 1
+            raise RuntimeError("permanent")
+
+        with pytest.raises(RuntimeError, match="permanent"):
+            await always_fail()
+        assert call_count == 3
+        # Final failure triggers deceleration
+        assert t.snapshot().concurrency == 5
+
+    async def test_retry_respects_retryable_predicate(self) -> None:
+        """Non-retryable exception propagates immediately."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+                retryable=lambda e: isinstance(e, RuntimeError),
+            ),
+        )
+
+        @t.wrap
+        async def raises_value_error() -> None:
+            nonlocal call_count
+            call_count += 1
+            raise ValueError("not retryable")
+
+        with pytest.raises(ValueError, match="not retryable"):
+            await raises_value_error()
+        # Should not have retried
+        assert call_count == 1
+
+    async def test_retry_emits_events(self) -> None:
+        """Retry emits 'retry' events via on_state_change."""
+        events: list[ThrottleEvent] = []
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+            on_state_change=lambda e: events.append(e),
+        )
+
+        @t.wrap
+        async def flaky() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise RuntimeError("transient")
+            return "ok"
+
+        await flaky()
+        retry_events = [e for e in events if e.kind == "retry"]
+        assert len(retry_events) == 2
+        assert retry_events[0].data["attempt"] == 1
+        assert retry_events[1].data["attempt"] == 2
+
+    async def test_retry_circuit_breaker_opens_during_retry(self) -> None:
+        """Circuit opens during retry, CircuitOpenError propagates."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            failure_threshold=100,  # high so throttle doesn't decelerate
+            circuit_breaker=CircuitBreakerConfig(
+                consecutive_failures=1,
+                open_duration=10.0,
+            ),
+            retry=RetryConfig(
+                max_attempts=5,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        @t.wrap
+        async def always_fail() -> None:
+            nonlocal call_count
+            call_count += 1
+            raise RuntimeError("fail")
+
+        with pytest.raises(CircuitOpenError):
+            await always_fail()
+        # First attempt fails, circuit trips (consecutive_failures=1),
+        # retry checks circuit before attempt 2 -> CircuitOpenError
+        assert call_count == 1
+
+    async def test_retry_max_attempts_one_behaves_like_no_retry(self) -> None:
+        """max_attempts=1 means no retries."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            retry=RetryConfig(
+                max_attempts=1,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        @t.wrap
+        async def fail_once() -> None:
+            nonlocal call_count
+            call_count += 1
+            raise RuntimeError("fail")
+
+        with pytest.raises(RuntimeError, match="fail"):
+            await fail_once()
+        assert call_count == 1
+
+    async def test_intermediate_failures_do_not_decelerate(self) -> None:
+        """Only the final failure (after retries exhausted) triggers deceleration."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=10,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            failure_threshold=1,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        @t.wrap
+        async def flaky() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise RuntimeError("transient")
+            return "ok"
+
+        result = await flaky()
+        assert result == "ok"
+        assert call_count == 3
+        # Intermediate failures should NOT have triggered deceleration
+        assert t.snapshot().concurrency == 10
+        assert t.snapshot().state == ThrottleState.RUNNING

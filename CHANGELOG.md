@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-08
+
+### Added
+
+- Retry integration in `Throttle.wrap()` — automatic retry with backoff inside the throttled slot
+  - Intermediate failures notify the circuit breaker but do not trigger throttle deceleration
+  - Only the final failure (after all retries exhausted) triggers deceleration
+  - `retry` event emitted via `on_state_change` for each retry attempt
+  - Circuit breaker checked before each retry attempt; `CircuitOpenError` propagates immediately
+- Retry integration tests in `test_throttle.py` (7 tests)
+- Retry edge case tests in `test_edge_cases.py` (3 tests)
+- Docstring on `acquire()` noting retry applies to `wrap()` only
+
+## [1.4.0] - 2026-02-08
+
+### Added
+
+- `RetryConfig` dataclass in `_config.py` — `max_attempts`, `backoff`, `base_delay`, `max_delay`, `retryable`
+  - Backoff strategies: `fixed`, `exponential`, `exponential_jitter`
+  - Validation: `max_attempts >= 1`, valid backoff, `base_delay >= 0`, `max_delay >= base_delay`
+- `retry` field on `ThrottleConfig` with `from_dict()` and `from_env()` support
+- `_retry.py` — `RetryHandler` with `compute_delay()`, `is_retryable()`, `max_attempts`
+  - Injectable `clock` and `rand_fn` for deterministic testing
+- `RetryConfig` exported from `__init__.py`
+- `tests/test_retry.py` — 27 tests for config validation and handler logic
+
+## [1.3.0] - 2026-02-07
+
+### Added
+
+- `.github/workflows/publish.yml` — automated PyPI publishing on version tags via trusted publishing (OIDC)
+- `build` added to dev dependencies
+
+## [1.2.0] - 2026-02-07
+
+### Added
+
+- `.github/workflows/ci.yml` — GitHub Actions CI with pytest, mypy, ruff, and Codecov upload
+- Dynamic coverage badge in `README.md`
+
+## [1.1.0] - 2026-02-07
+
+### Added
+
+- `CHANGELOG.md` — full project history following Keep a Changelog format
+
 ## [1.0.0] - 2026-02-07
 
 ### Added

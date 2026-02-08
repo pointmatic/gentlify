@@ -20,6 +20,7 @@ import pytest
 
 from gentlify import (
     CircuitBreakerConfig,
+    RetryConfig,
     Throttle,
     ThrottleClosed,
     ThrottleState,
@@ -233,3 +234,75 @@ class TestZeroJitter:
             async with t.acquire():
                 pass
         assert t.snapshot().completed_tasks == 5
+
+
+class TestRetryWithNoRetryConfig:
+    async def test_wrap_without_retry_behaves_normally(self) -> None:
+        """wrap() without retry config calls function exactly once."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+        )
+
+        @t.wrap
+        async def fail() -> None:
+            nonlocal call_count
+            call_count += 1
+            raise RuntimeError("no retry")
+
+        with pytest.raises(RuntimeError, match="no retry"):
+            await fail()
+        assert call_count == 1
+
+
+class TestRetryWithAcquire:
+    async def test_acquire_does_not_retry(self) -> None:
+        """acquire() context manager does not retry — user handles it."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        with pytest.raises(RuntimeError, match="manual"):
+            async with t.acquire():
+                call_count += 1
+                raise RuntimeError("manual")
+        # Body only executes once — retry doesn't apply to acquire()
+        assert call_count == 1
+
+
+class TestRetrySucceedsOnLastAttempt:
+    async def test_succeeds_on_final_attempt(self) -> None:
+        """Function succeeds on the very last allowed attempt."""
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+            ),
+        )
+
+        @t.wrap
+        async def flaky() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise RuntimeError("transient")
+            return "finally"
+
+        result = await flaky()
+        assert result == "finally"
+        assert call_count == 3

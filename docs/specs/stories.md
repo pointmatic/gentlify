@@ -414,38 +414,38 @@ Add retry configuration and backoff computation.
 - [x] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
 - [x] Bump version to `1.4.0`
 
-### Story G.b: v1.5.0 Throttle Retry Integration [Planned]
+### Story G.b: v1.5.0 Throttle Retry Integration [Done]
 
 Wire retry into the Throttle's `acquire()` and `wrap()` flows.
 
-- [ ] Update `_throttle.py`
-  - [ ] Create `RetryHandler` from config if `retry` is set
-  - [ ] In `wrap()`: retry the wrapped function call on failure
-    - [ ] Check `is_retryable()` before each retry
-    - [ ] Sleep `compute_delay(attempt)` between retries
-    - [ ] Check circuit breaker before each retry attempt
-    - [ ] Emit `retry` event via `on_state_change`
-    - [ ] Only record final failure for throttle deceleration
-  - [ ] Context manager `acquire()`: document that retry applies to `wrap()` only (context manager body cannot be re-entered)
-- [ ] Add retry integration tests to `tests/test_throttle.py`
-  - [ ] `wrap()` retries on failure and succeeds on second attempt
-  - [ ] `wrap()` exhausts retries and records final failure
-  - [ ] Retry respects `retryable` predicate (non-retryable propagates immediately)
-  - [ ] Retry emits `retry` events via `on_state_change`
-  - [ ] Retry + circuit breaker: circuit opens during retry, `CircuitOpenError` propagates
-  - [ ] Retry with `max_attempts=1` behaves like no retry
-  - [ ] Intermediate retry failures do not trigger deceleration
-- [ ] Add retry edge cases to `tests/test_edge_cases.py`
-- [ ] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
-- [ ] Bump version to `1.5.0`
+- [x] Update `_throttle.py`
+  - [x] Create `RetryHandler` from config if `retry` is set
+  - [x] In `wrap()`: retry the wrapped function call on failure
+    - [x] Check `is_retryable()` before each retry
+    - [x] Sleep `compute_delay(attempt)` between retries
+    - [x] Check circuit breaker before each retry attempt
+    - [x] Emit `retry` event via `on_state_change`
+    - [x] Only record final failure for throttle deceleration
+  - [x] Context manager `acquire()`: document that retry applies to `wrap()` only (context manager body cannot be re-entered)
+- [x] Add retry integration tests to `tests/test_throttle.py`
+  - [x] `wrap()` retries on failure and succeeds on second attempt
+  - [x] `wrap()` exhausts retries and records final failure
+  - [x] Retry respects `retryable` predicate (non-retryable propagates immediately)
+  - [x] Retry emits `retry` events via `on_state_change`
+  - [x] Retry + circuit breaker: circuit opens during retry, `CircuitOpenError` propagates
+  - [x] Retry with `max_attempts=1` behaves like no retry
+  - [x] Intermediate retry failures do not trigger deceleration
+- [x] Add retry edge cases to `tests/test_edge_cases.py`
+- [x] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
+- [x] Bump version to `1.5.0`
 
-### Story G.c: v1.6.0 Retry Documentation and Polish [Planned]
+### Story G.c: v1.6.0 Retry Documentation and Polish [Done]
 
 Update all documentation for the retry feature.
 
-- [ ] Update `README.md` with retry section and examples
-- [ ] Update `CHANGELOG.md` with retry entries
-- [ ] Final full test run: `pytest --cov=gentlify`
-- [ ] Final `mypy --strict src/gentlify`
-- [ ] Final `ruff check src/ tests/`
-- [ ] Bump version to `1.6.0`
+- [x] Update `README.md` with retry section and examples
+- [x] Update `CHANGELOG.md` with retry entries
+- [x] Final full test run: `pytest --cov=gentlify`
+- [x] Final `mypy --strict src/gentlify`
+- [x] Final `ruff check src/ tests/`
+- [x] Bump version to `1.6.0`

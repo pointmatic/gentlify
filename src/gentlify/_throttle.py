@@ -28,6 +28,7 @@ from gentlify._config import ThrottleConfig
 from gentlify._dispatch import DispatchGate
 from gentlify._exceptions import ThrottleClosed
 from gentlify._progress import ProgressTracker
+from gentlify._retry import RetryHandler
 from gentlify._slot import Slot
 from gentlify._token_bucket import TokenBucket
 from gentlify._types import (
@@ -85,6 +86,14 @@ class Throttle:
                 clock=self._clock,
             )
 
+        self._retry_handler: RetryHandler | None = None
+        if self._config.retry is not None:
+            self._retry_handler = RetryHandler(
+                config=self._config.retry,
+                clock=self._clock,
+                rand_fn=self._rand_fn,
+            )
+
         self._state = ThrottleState.RUNNING
         self._safe_ceiling = self._config.max_concurrency
         self._cooling_start: float | None = None
@@ -108,7 +117,11 @@ class Throttle:
 
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[Slot]:
-        """Primary API: acquire a throttled slot."""
+        """Primary API: acquire a throttled slot.
+
+        Note: Retry logic applies only to the ``wrap()`` decorator API.
+        Context manager blocks cannot be re-entered by the retry loop.
+        """
         # 1. Check state
         if self._state in (ThrottleState.CLOSED, ThrottleState.DRAINING):
             raise ThrottleClosed()
@@ -306,10 +319,61 @@ class Throttle:
 
         @functools.wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            async with self.acquire():
-                return await fn(*args, **kwargs)
+            async with self.acquire() as slot:
+                return await self._call_with_retry(fn, slot, *args, **kwargs)
 
         return wrapper
+
+    async def _call_with_retry(
+        self, fn: Any, slot: Slot, *args: Any, **kwargs: Any
+    ) -> Any:
+        """Call *fn* with retry logic if configured, otherwise call once."""
+        if self._retry_handler is None:
+            return await fn(*args, **kwargs)
+
+        last_exc: BaseException | None = None
+        max_attempts = self._retry_handler.max_attempts
+
+        for attempt in range(max_attempts):
+            try:
+                return await fn(*args, **kwargs)
+            except BaseException as exc:
+                last_exc = exc
+
+                # Check retryable predicate
+                if not self._retry_handler.is_retryable(exc):
+                    raise
+
+                # Last attempt — don't retry, let it propagate
+                if attempt == max_attempts - 1:
+                    raise
+
+                # Record intermediate failure on circuit breaker only
+                if self._circuit_breaker is not None:
+                    self._circuit_breaker.record_failure()
+
+                # Emit retry event
+                delay = self._retry_handler.compute_delay(attempt)
+                self._emit_event(
+                    "retry",
+                    {
+                        "attempt": attempt + 1,
+                        "max_attempts": max_attempts,
+                        "exception": str(exc),
+                        "delay": delay,
+                    },
+                )
+
+                # Backoff sleep
+                await asyncio.sleep(delay)
+
+                # Check circuit breaker before next attempt
+                if self._circuit_breaker is not None:
+                    self._circuit_breaker.check()
+
+        # Should never reach here, but satisfy type checker
+        assert last_exc is not None  # noqa: S101
+        raise last_exc
 
     def close(self) -> None:
         """Signal that no new requests should be accepted."""
