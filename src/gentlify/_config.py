@@ -76,8 +76,7 @@ class RetryConfig:
             raise ValueError(f"max_attempts must be >= 1, got {self.max_attempts}")
         if self.backoff not in _VALID_BACKOFF_STRATEGIES:
             raise ValueError(
-                f"backoff must be one of {sorted(_VALID_BACKOFF_STRATEGIES)}, "
-                f"got {self.backoff!r}"
+                f"backoff must be one of {sorted(_VALID_BACKOFF_STRATEGIES)}, got {self.backoff!r}"
             )
         if self.base_delay < 0:
             raise ValueError(f"base_delay must be >= 0, got {self.base_delay}")
@@ -273,10 +272,7 @@ class ThrottleConfig:
         rt_backoff = os.environ.get(f"{prefix}_RETRY_BACKOFF")
         rt_base_delay = os.environ.get(f"{prefix}_RETRY_BASE_DELAY")
         rt_max_delay = os.environ.get(f"{prefix}_RETRY_MAX_DELAY")
-        if any(
-            v is not None
-            for v in (rt_max_attempts, rt_backoff, rt_base_delay, rt_max_delay)
-        ):
+        if any(v is not None for v in (rt_max_attempts, rt_backoff, rt_base_delay, rt_max_delay)):
             rt_kwargs: dict[str, Any] = {}
             if rt_max_attempts is not None:
                 rt_kwargs["max_attempts"] = int(rt_max_attempts)

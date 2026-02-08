@@ -449,3 +449,11 @@ Update all documentation for the retry feature.
 - [x] Final `mypy --strict src/gentlify`
 - [x] Final `ruff check src/ tests/`
 - [x] Bump version to `1.6.0`
+
+### Story G.d: v1.6.1 Formatting Bugfix [Done]
+
+Fix `ruff format --check` CI failures introduced in Phase G.
+
+- [x] Run `ruff format` on `_config.py`, `_throttle.py`, `test_retry.py`
+- [x] Verify: `ruff format --check`, `ruff check`, `mypy --strict`, `pytest` all pass
+- [x] Bump version to `1.6.1`

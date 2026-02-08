@@ -324,9 +324,7 @@ class Throttle:
 
         return wrapper
 
-    async def _call_with_retry(
-        self, fn: Any, slot: Slot, *args: Any, **kwargs: Any
-    ) -> Any:
+    async def _call_with_retry(self, fn: Any, slot: Slot, *args: Any, **kwargs: Any) -> Any:
         """Call *fn* with retry logic if configured, otherwise call once."""
         if self._retry_handler is None:
             return await fn(*args, **kwargs)

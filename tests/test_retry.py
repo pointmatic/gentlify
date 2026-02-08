@@ -109,28 +109,22 @@ class TestRetryHandlerFixedBackoff:
 
 class TestRetryHandlerExponentialBackoff:
     def test_doubles_each_attempt(self) -> None:
-        handler = RetryHandler(
-            RetryConfig(backoff="exponential", base_delay=1.0, max_delay=60.0)
-        )
-        assert handler.compute_delay(0) == 1.0   # 1.0 * 2^0
-        assert handler.compute_delay(1) == 2.0   # 1.0 * 2^1
-        assert handler.compute_delay(2) == 4.0   # 1.0 * 2^2
-        assert handler.compute_delay(3) == 8.0   # 1.0 * 2^3
+        handler = RetryHandler(RetryConfig(backoff="exponential", base_delay=1.0, max_delay=60.0))
+        assert handler.compute_delay(0) == 1.0  # 1.0 * 2^0
+        assert handler.compute_delay(1) == 2.0  # 1.0 * 2^1
+        assert handler.compute_delay(2) == 4.0  # 1.0 * 2^2
+        assert handler.compute_delay(3) == 8.0  # 1.0 * 2^3
         assert handler.compute_delay(4) == 16.0  # 1.0 * 2^4
 
     def test_capped_at_max_delay(self) -> None:
-        handler = RetryHandler(
-            RetryConfig(backoff="exponential", base_delay=1.0, max_delay=10.0)
-        )
+        handler = RetryHandler(RetryConfig(backoff="exponential", base_delay=1.0, max_delay=10.0))
         assert handler.compute_delay(0) == 1.0
         assert handler.compute_delay(3) == 8.0
         assert handler.compute_delay(4) == 10.0  # capped
         assert handler.compute_delay(10) == 10.0  # still capped
 
     def test_custom_base_delay(self) -> None:
-        handler = RetryHandler(
-            RetryConfig(backoff="exponential", base_delay=0.5, max_delay=60.0)
-        )
+        handler = RetryHandler(RetryConfig(backoff="exponential", base_delay=0.5, max_delay=60.0))
         assert handler.compute_delay(0) == 0.5
         assert handler.compute_delay(1) == 1.0
         assert handler.compute_delay(2) == 2.0
@@ -141,6 +135,7 @@ class TestRetryHandlerExponentialJitterBackoff:
     def _fixed_random(value: float) -> object:
         def _rand(lo: float, hi: float) -> float:
             return lo + (hi - lo) * value
+
         return _rand
 
     def test_jitter_at_midpoint(self) -> None:
