@@ -370,7 +370,7 @@ Add a dynamic code coverage badge using Codecov or Coveralls.
   - [x] Generate coverage XML: `pytest --cov=gentlify --cov-report=xml`
   - [x] Upload via `codecov/codecov-action@v4`
 - [x] Add coverage badge to `README.md` (e.g. `[![codecov](https://codecov.io/gh/<org>/<repo>/...)]`)
-- [ ] Verify: coverage report appears on Codecov dashboard after push
+- [x] Verify: coverage report appears on Codecov dashboard after push
 
 ### Story F.c: v1.3.0 Release Automation [Done]
 
@@ -385,34 +385,34 @@ Automate PyPI publishing on tagged releases.
   - [x] Bump version in `_version.py` and `pyproject.toml`
   - [x] Tag: `git tag v<version> && git push --tags`
   - [x] GitHub Action builds and publishes automatically
-- [ ] Verify: tag push triggers publish workflow
+- [x] Verify: tag push triggers publish workflow
 
 ---
 
 ## Phase G: Built-in Retry
 
-### Story G.a: v1.4.0 RetryConfig and RetryHandler [Planned]
+### Story G.a: v1.4.0 RetryConfig and RetryHandler [Done]
 
 Add retry configuration and backoff computation.
 
-- [ ] Add `RetryConfig` dataclass to `_config.py`
-  - [ ] Fields: `max_attempts`, `backoff`, `base_delay`, `max_delay`, `retryable`
-  - [ ] Validation in `__post_init__()`: `max_attempts >= 1`, `backoff` in valid set, `base_delay >= 0`, `max_delay >= base_delay`
-  - [ ] Add `retry` field to `ThrottleConfig`
-  - [ ] Support `retry` in `from_dict()` and `from_env()`
-- [ ] Create `_retry.py` with `RetryHandler`
-  - [ ] `compute_delay(attempt)` — fixed, exponential, exponential_jitter strategies
-  - [ ] `is_retryable(exc)` — delegates to predicate or returns True
-  - [ ] `max_attempts` property
-  - [ ] Injectable `clock` and `rand_fn` for deterministic testing
-- [ ] Export `RetryConfig` from `__init__.py` and add to `__all__`
-- [ ] Create `tests/test_retry.py`
-  - [ ] Test all three backoff strategies with deterministic rand_fn
-  - [ ] Test retryable predicate (custom and default)
-  - [ ] Test validation (invalid max_attempts, invalid backoff, invalid delays)
-  - [ ] Test delay capping at max_delay
-- [ ] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
-- [ ] Bump version to `1.4.0`
+- [x] Add `RetryConfig` dataclass to `_config.py`
+  - [x] Fields: `max_attempts`, `backoff`, `base_delay`, `max_delay`, `retryable`
+  - [x] Validation in `__post_init__()`: `max_attempts >= 1`, `backoff` in valid set, `base_delay >= 0`, `max_delay >= base_delay`
+  - [x] Add `retry` field to `ThrottleConfig`
+  - [x] Support `retry` in `from_dict()` and `from_env()`
+- [x] Create `_retry.py` with `RetryHandler`
+  - [x] `compute_delay(attempt)` — fixed, exponential, exponential_jitter strategies
+  - [x] `is_retryable(exc)` — delegates to predicate or returns True
+  - [x] `max_attempts` property
+  - [x] Injectable `clock` and `rand_fn` for deterministic testing
+- [x] Export `RetryConfig` from `__init__.py` and add to `__all__`
+- [x] Create `tests/test_retry.py`
+  - [x] Test all three backoff strategies with deterministic rand_fn
+  - [x] Test retryable predicate (custom and default)
+  - [x] Test validation (invalid max_attempts, invalid backoff, invalid delays)
+  - [x] Test delay capping at max_delay
+- [x] Verify: `pytest`, `mypy --strict`, `ruff check` all pass
+- [x] Bump version to `1.4.0`
 
 ### Story G.b: v1.5.0 Throttle Retry Integration [Planned]
 

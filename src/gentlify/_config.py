@@ -19,11 +19,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from gentlify._types import (
         FailurePredicate,
         ProgressCallback,
         StateChangeCallback,
     )
+
+_VALID_BACKOFF_STRATEGIES = frozenset({"fixed", "exponential", "exponential_jitter"})
 
 
 @dataclass(frozen=True)
@@ -58,6 +62,32 @@ class CircuitBreakerConfig:
 
 
 @dataclass(frozen=True)
+class RetryConfig:
+    """Retry and backoff configuration."""
+
+    max_attempts: int = 3
+    backoff: str = "exponential_jitter"
+    base_delay: float = 1.0
+    max_delay: float = 60.0
+    retryable: Callable[[BaseException], bool] | None = None
+
+    def __post_init__(self) -> None:
+        if self.max_attempts < 1:
+            raise ValueError(f"max_attempts must be >= 1, got {self.max_attempts}")
+        if self.backoff not in _VALID_BACKOFF_STRATEGIES:
+            raise ValueError(
+                f"backoff must be one of {sorted(_VALID_BACKOFF_STRATEGIES)}, "
+                f"got {self.backoff!r}"
+            )
+        if self.base_delay < 0:
+            raise ValueError(f"base_delay must be >= 0, got {self.base_delay}")
+        if self.max_delay < self.base_delay:
+            raise ValueError(
+                f"max_delay ({self.max_delay}) must be >= base_delay ({self.base_delay})"
+            )
+
+
+@dataclass(frozen=True)
 class ThrottleConfig:
     """Complete throttle configuration with validation."""
 
@@ -74,6 +104,7 @@ class ThrottleConfig:
     failure_predicate: FailurePredicate | None = None
     token_budget: TokenBudget | None = None
     circuit_breaker: CircuitBreakerConfig | None = None
+    retry: RetryConfig | None = None
     on_state_change: StateChangeCallback | None = None
     on_progress: ProgressCallback | None = None
 
@@ -164,6 +195,24 @@ class ThrottleConfig:
                     cb_kwargs["half_open_max_calls"] = int(cb["half_open_max_calls"])
                 kwargs["circuit_breaker"] = CircuitBreakerConfig(**cb_kwargs)
 
+        if "retry" in data:
+            rt = data["retry"]
+            if isinstance(rt, RetryConfig):
+                kwargs["retry"] = rt
+            elif isinstance(rt, dict):
+                rt_kwargs: dict[str, Any] = {}
+                if "max_attempts" in rt:
+                    rt_kwargs["max_attempts"] = int(rt["max_attempts"])
+                if "backoff" in rt:
+                    rt_kwargs["backoff"] = str(rt["backoff"])
+                if "base_delay" in rt:
+                    rt_kwargs["base_delay"] = float(rt["base_delay"])
+                if "max_delay" in rt:
+                    rt_kwargs["max_delay"] = float(rt["max_delay"])
+                if "retryable" in rt:
+                    rt_kwargs["retryable"] = rt["retryable"]
+                kwargs["retry"] = RetryConfig(**rt_kwargs)
+
         return ThrottleConfig(**kwargs)
 
     @staticmethod
@@ -218,5 +267,25 @@ class ThrottleConfig:
             if cb_half_open is not None:
                 cb_kwargs["half_open_max_calls"] = int(cb_half_open)
             kwargs["circuit_breaker"] = CircuitBreakerConfig(**cb_kwargs)
+
+        # Retry (any field triggers creation with defaults for the rest)
+        rt_max_attempts = os.environ.get(f"{prefix}_RETRY_MAX_ATTEMPTS")
+        rt_backoff = os.environ.get(f"{prefix}_RETRY_BACKOFF")
+        rt_base_delay = os.environ.get(f"{prefix}_RETRY_BASE_DELAY")
+        rt_max_delay = os.environ.get(f"{prefix}_RETRY_MAX_DELAY")
+        if any(
+            v is not None
+            for v in (rt_max_attempts, rt_backoff, rt_base_delay, rt_max_delay)
+        ):
+            rt_kwargs: dict[str, Any] = {}
+            if rt_max_attempts is not None:
+                rt_kwargs["max_attempts"] = int(rt_max_attempts)
+            if rt_backoff is not None:
+                rt_kwargs["backoff"] = rt_backoff
+            if rt_base_delay is not None:
+                rt_kwargs["base_delay"] = float(rt_base_delay)
+            if rt_max_delay is not None:
+                rt_kwargs["max_delay"] = float(rt_max_delay)
+            kwargs["retry"] = RetryConfig(**rt_kwargs)
 
         return ThrottleConfig(**kwargs)
