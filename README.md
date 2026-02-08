@@ -218,6 +218,18 @@ mypy --strict src/gentlify
 ruff check src/ tests/
 ```
 
+## Releasing
+
+1. Bump the version in `src/gentlify/_version.py` and `pyproject.toml`
+2. Update `CHANGELOG.md`
+3. Commit and push to `main`
+4. Tag the release and push:
+   ```bash
+   git tag v<version>
+   git push --tags
+   ```
+5. The GitHub Action builds and publishes to PyPI automatically via trusted publishing (OIDC)
+
 ## License
 
 Apache-2.0 — Copyright (c) 2026 Pointmatic

@@ -372,17 +372,17 @@ Add a dynamic code coverage badge using Codecov or Coveralls.
 - [x] Add coverage badge to `README.md` (e.g. `[![codecov](https://codecov.io/gh/<org>/<repo>/...)]`)
 - [ ] Verify: coverage report appears on Codecov dashboard after push
 
-### Story F.c: v1.3.0 Release Automation [Planned]
+### Story F.c: v1.3.0 Release Automation [Done]
 
 Automate PyPI publishing on tagged releases.
 
-- [ ] Create `.github/workflows/publish.yml`
-  - [ ] Trigger on push of version tags (`v*`)
-  - [ ] Steps: checkout, setup-python, build (`python -m build`), publish to PyPI via `pypa/gh-action-pypi-publish@release/v1`
-  - [ ] Use trusted publishing (OIDC) — no API token needed
-- [ ] Add `build` to dev dependencies in `pyproject.toml`
-- [ ] Document release process in `README.md` or `CONTRIBUTING.md`
-  - [ ] Bump version in `_version.py` and `pyproject.toml`
-  - [ ] Tag: `git tag v<version> && git push --tags`
-  - [ ] GitHub Action builds and publishes automatically
+- [x] Create `.github/workflows/publish.yml`
+  - [x] Trigger on push of version tags (`v*`)
+  - [x] Steps: checkout, setup-python, build (`python -m build`), publish to PyPI via `pypa/gh-action-pypi-publish@release/v1`
+  - [x] Use trusted publishing (OIDC) — no API token needed
+- [x] Add `build` to dev dependencies in `pyproject.toml`
+- [x] Document release process in `README.md`
+  - [x] Bump version in `_version.py` and `pyproject.toml`
+  - [x] Tag: `git tag v<version> && git push --tags`
+  - [x] GitHub Action builds and publishes automatically
 - [ ] Verify: tag push triggers publish workflow
