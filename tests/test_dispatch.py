@@ -27,9 +27,7 @@ class TestDispatchGateWait:
     async def test_first_wait_no_base_delay(self, fake_clock: FakeClock) -> None:
         """First wait should have no base delay, only jitter."""
         zero_rand = lambda lo, hi: 0.0  # noqa: E731
-        gate = DispatchGate(
-            interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=zero_rand
-        )
+        gate = DispatchGate(interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=zero_rand)
         with patch("gentlify._dispatch.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             await gate.wait()
             mock_sleep.assert_called_once_with(0.0)
@@ -37,9 +35,7 @@ class TestDispatchGateWait:
     async def test_wait_enforces_interval(self, fake_clock: FakeClock) -> None:
         """Second wait should enforce the interval minus elapsed time."""
         zero_rand = lambda lo, hi: 0.0  # noqa: E731
-        gate = DispatchGate(
-            interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=zero_rand
-        )
+        gate = DispatchGate(interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=zero_rand)
         with patch("gentlify._dispatch.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             await gate.wait()  # first call, sets last_dispatch=0
             fake_clock.advance(0.3)  # only 0.3s elapsed
@@ -52,9 +48,7 @@ class TestDispatchGateWait:
     async def test_wait_no_delay_if_interval_elapsed(self, fake_clock: FakeClock) -> None:
         """If enough time has passed, no base delay needed."""
         zero_rand = lambda lo, hi: 0.0  # noqa: E731
-        gate = DispatchGate(
-            interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=zero_rand
-        )
+        gate = DispatchGate(interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=zero_rand)
         with patch("gentlify._dispatch.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             await gate.wait()
             fake_clock.advance(2.0)  # more than interval
@@ -68,9 +62,7 @@ class TestDispatchGateJitter:
         """Jitter should be between 0 and interval * jitter_fraction."""
         # rand_fn returns the max of the range
         max_rand = lambda lo, hi: hi  # noqa: E731
-        gate = DispatchGate(
-            interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=max_rand
-        )
+        gate = DispatchGate(interval=1.0, jitter_fraction=0.5, clock=fake_clock, rand_fn=max_rand)
         with patch("gentlify._dispatch.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             await gate.wait()
             # First wait: remaining=0, jitter=0.5 (1.0 * 0.5)
@@ -81,9 +73,7 @@ class TestDispatchGateJitter:
         """With jitter_fraction=0, jitter should always be 0."""
         # Even if rand returns hi, jitter should be 0 because range is [0, 0]
         max_rand = lambda lo, hi: hi  # noqa: E731
-        gate = DispatchGate(
-            interval=1.0, jitter_fraction=0.0, clock=fake_clock, rand_fn=max_rand
-        )
+        gate = DispatchGate(interval=1.0, jitter_fraction=0.0, clock=fake_clock, rand_fn=max_rand)
         with patch("gentlify._dispatch.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             await gate.wait()
             actual_delay = mock_sleep.call_args_list[0][0][0]
@@ -166,9 +156,7 @@ class TestDispatchGateSequentialWaits:
     async def test_rapid_waits_respect_interval(self, fake_clock: FakeClock) -> None:
         """Multiple rapid waits should each enforce the interval."""
         zero_rand = lambda lo, hi: 0.0  # noqa: E731
-        gate = DispatchGate(
-            interval=1.0, jitter_fraction=0.0, clock=fake_clock, rand_fn=zero_rand
-        )
+        gate = DispatchGate(interval=1.0, jitter_fraction=0.0, clock=fake_clock, rand_fn=zero_rand)
         delays: list[float] = []
         with patch("gentlify._dispatch.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             for _ in range(3):

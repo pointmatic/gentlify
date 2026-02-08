@@ -68,9 +68,7 @@ class TestMilestoneDetection:
                 assert not result
         assert result  # 10th completion crosses 10% milestone
 
-    def test_milestones_at_each_10_percent(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_milestones_at_each_10_percent(self, fake_clock: FakeClock) -> None:
         pt = ProgressTracker(total_tasks=10, clock=fake_clock)
         milestones = []
         for _ in range(10):
@@ -78,16 +76,12 @@ class TestMilestoneDetection:
                 milestones.append(pt.percentage)
         assert milestones == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0]
 
-    def test_no_milestones_with_zero_total(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_no_milestones_with_zero_total(self, fake_clock: FakeClock) -> None:
         pt = ProgressTracker(total_tasks=0, clock=fake_clock)
         assert not pt.record_completion(1.0)
 
     def test_custom_milestone_pct(self, fake_clock: FakeClock) -> None:
-        pt = ProgressTracker(
-            total_tasks=4, milestone_pct=25.0, clock=fake_clock
-        )
+        pt = ProgressTracker(total_tasks=4, milestone_pct=25.0, clock=fake_clock)
         milestones = []
         for _ in range(4):
             if pt.record_completion(1.0):
@@ -96,18 +90,14 @@ class TestMilestoneDetection:
 
 
 class TestEtaCalculation:
-    def test_eta_with_known_durations(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_eta_with_known_durations(self, fake_clock: FakeClock) -> None:
         pt = ProgressTracker(total_tasks=10, clock=fake_clock)
         for _ in range(5):
             pt.record_completion(2.0)
         # 5 remaining, avg duration = 2.0, ETA = 5 * 2.0 = 10.0
         assert pt.eta_seconds == 10.0
 
-    def test_eta_none_when_no_completions(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_eta_none_when_no_completions(self, fake_clock: FakeClock) -> None:
         pt = ProgressTracker(total_tasks=10, clock=fake_clock)
         assert pt.eta_seconds is None
 
@@ -117,17 +107,13 @@ class TestEtaCalculation:
             pt.record_completion(1.0)
         assert pt.eta_seconds == 0.0
 
-    def test_eta_with_varying_durations(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_eta_with_varying_durations(self, fake_clock: FakeClock) -> None:
         pt = ProgressTracker(total_tasks=10, clock=fake_clock)
         pt.record_completion(1.0)
         pt.record_completion(3.0)
         # avg = 2.0, remaining = 8, ETA = 16.0
         assert pt.eta_seconds == 16.0
 
-    def test_eta_none_with_zero_total(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_eta_none_with_zero_total(self, fake_clock: FakeClock) -> None:
         pt = ProgressTracker(total_tasks=0, clock=fake_clock)
         assert pt.eta_seconds is None

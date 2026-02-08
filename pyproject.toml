@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gentlify"
-version = "0.12.0"
+version = "0.14.0"
 description = "Adaptive async rate limiting for Python — closed-loop feedback control for API concurrency."
 readme = "README.md"
 license = "Apache-2.0"

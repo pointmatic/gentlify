@@ -27,9 +27,7 @@ if TYPE_CHECKING:
 
 
 class TestClosedToOpen:
-    def test_opens_after_consecutive_failures(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_opens_after_consecutive_failures(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
             config=CircuitBreakerConfig(consecutive_failures=3),
             clock=fake_clock,
@@ -41,9 +39,7 @@ class TestClosedToOpen:
         cb.record_failure()
         assert cb.state == "open"
 
-    def test_consecutive_failures_count(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_consecutive_failures_count(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
             config=CircuitBreakerConfig(consecutive_failures=5),
             clock=fake_clock,
@@ -60,9 +56,7 @@ class TestClosedToOpen:
 class TestOpenToHalfOpen:
     def test_transitions_after_delay(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=10.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=10.0),
             clock=fake_clock,
         )
         cb.record_failure()
@@ -72,9 +66,7 @@ class TestOpenToHalfOpen:
 
     def test_stays_open_before_delay(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=10.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=10.0),
             clock=fake_clock,
         )
         cb.record_failure()
@@ -83,9 +75,7 @@ class TestOpenToHalfOpen:
 
 
 class TestHalfOpenToClosed:
-    def test_closes_after_enough_successes(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_closes_after_enough_successes(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
             config=CircuitBreakerConfig(
                 consecutive_failures=1,
@@ -101,9 +91,7 @@ class TestHalfOpenToClosed:
         cb.record_success()
         assert cb.state == "closed"
 
-    def test_closes_after_multiple_successes(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_closes_after_multiple_successes(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
             config=CircuitBreakerConfig(
                 consecutive_failures=1,
@@ -125,9 +113,7 @@ class TestHalfOpenToClosed:
 class TestHalfOpenToOpen:
     def test_reopens_on_failure(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=5.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=5.0),
             clock=fake_clock,
         )
         cb.record_failure()
@@ -138,9 +124,7 @@ class TestHalfOpenToOpen:
 
     def test_delay_doubles_on_reopen(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=5.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=5.0),
             clock=fake_clock,
         )
         # First trip
@@ -158,13 +142,9 @@ class TestHalfOpenToOpen:
 
 
 class TestDelayCapAt5x:
-    def test_delay_caps_at_five_times_open_duration(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_delay_caps_at_five_times_open_duration(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=10.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=10.0),
             clock=fake_clock,
         )
         # Trip 1: open_duration=10
@@ -205,9 +185,7 @@ class TestDelayCapAt5x:
 class TestCheckRaisesCircuitOpenError:
     def test_raises_when_open(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=10.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=10.0),
             clock=fake_clock,
         )
         cb.record_failure()
@@ -217,9 +195,7 @@ class TestCheckRaisesCircuitOpenError:
 
     def test_retry_after_decreases(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=10.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=10.0),
             clock=fake_clock,
         )
         cb.record_failure()
@@ -235,9 +211,7 @@ class TestCheckRaisesCircuitOpenError:
         )
         cb.check()  # should not raise
 
-    def test_allows_probes_in_half_open(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_allows_probes_in_half_open(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
             config=CircuitBreakerConfig(
                 consecutive_failures=1,
@@ -255,9 +229,7 @@ class TestCheckRaisesCircuitOpenError:
 
 
 class TestSuccessResetsFailureCount:
-    def test_success_resets_consecutive_failures(
-        self, fake_clock: FakeClock
-    ) -> None:
+    def test_success_resets_consecutive_failures(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
             config=CircuitBreakerConfig(consecutive_failures=3),
             clock=fake_clock,
@@ -278,9 +250,7 @@ class TestSuccessResetsFailureCount:
 class TestZeroOpenDuration:
     def test_immediately_half_open(self, fake_clock: FakeClock) -> None:
         cb = CircuitBreaker(
-            config=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=0.0
-            ),
+            config=CircuitBreakerConfig(consecutive_failures=1, open_duration=0.0),
             clock=fake_clock,
         )
         cb.record_failure()

@@ -1,6 +1,15 @@
+# Generic
+.DS_Store
+__pycache__
+.pyve/testenv
+
+# Project
+.archive
+.coverage
+htmlcov/
+.pytest_cache/
+
+# removed and added with `pyve --init --force`
 .venv
 .env
 .envrc
-__pycache__
-.pyve/testenv
-.DS_Store

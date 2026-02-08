@@ -53,9 +53,7 @@ class TestBasicAcquireRelease:
         t = Throttle(
             max_concurrency=5,
             min_dispatch_interval=0.0,
-            token_budget=TokenBudget(
-                max_tokens=10000, window_seconds=60.0
-            ),
+            token_budget=TokenBudget(max_tokens=10000, window_seconds=60.0),
         )
         async with t.acquire() as slot:
             slot.record_tokens(100)
@@ -159,9 +157,7 @@ class TestSnapshot:
         t = Throttle(
             max_concurrency=5,
             min_dispatch_interval=0.0,
-            token_budget=TokenBudget(
-                max_tokens=1000, window_seconds=60.0
-            ),
+            token_budget=TokenBudget(max_tokens=1000, window_seconds=60.0),
         )
         snap = t.snapshot()
         assert snap.tokens_remaining == 1000
@@ -209,9 +205,7 @@ class TestCircuitBreakerIntegration:
             max_concurrency=5,
             min_dispatch_interval=0.0,
             jitter_fraction=0.0,
-            circuit_breaker=CircuitBreakerConfig(
-                consecutive_failures=1, open_duration=10.0
-            ),
+            circuit_breaker=CircuitBreakerConfig(consecutive_failures=1, open_duration=10.0),
         )
         # Trip the circuit
         with pytest.raises(RuntimeError):
@@ -229,9 +223,7 @@ class TestTokenBudgetIntegration:
             max_concurrency=5,
             min_dispatch_interval=0.0,
             jitter_fraction=0.0,
-            token_budget=TokenBudget(
-                max_tokens=1000, window_seconds=60.0
-            ),
+            token_budget=TokenBudget(max_tokens=1000, window_seconds=60.0),
         )
         async with t.acquire() as slot:
             slot.record_tokens(200)
@@ -262,9 +254,7 @@ class TestManualRecordMethods:
         t = Throttle(
             max_concurrency=5,
             min_dispatch_interval=0.0,
-            token_budget=TokenBudget(
-                max_tokens=1000, window_seconds=60.0
-            ),
+            token_budget=TokenBudget(max_tokens=1000, window_seconds=60.0),
         )
         t.record_tokens(300)
         assert t.snapshot().tokens_used == 300
@@ -301,13 +291,15 @@ class TestFromDict:
         assert t.snapshot().max_concurrency == 20
 
     def test_from_dict_with_nested(self) -> None:
-        t = Throttle.from_dict({
-            "max_concurrency": 10,
-            "token_budget": {
-                "max_tokens": 5000,
-                "window_seconds": 60.0,
-            },
-        })
+        t = Throttle.from_dict(
+            {
+                "max_concurrency": 10,
+                "token_budget": {
+                    "max_tokens": 5000,
+                    "window_seconds": 60.0,
+                },
+            }
+        )
         assert t.snapshot().tokens_remaining == 5000
 
 
@@ -352,9 +344,7 @@ class TestWrapDecorator:
         assert t.snapshot().concurrency == 5
 
     async def test_wrap_preserves_function_name(self) -> None:
-        t = Throttle(
-            max_concurrency=5, min_dispatch_interval=0.0
-        )
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
 
         @t.wrap
         async def my_special_fn() -> None:
@@ -379,18 +369,14 @@ class TestWrapDecorator:
 
 class TestClose:
     async def test_close_rejects_new_acquires(self) -> None:
-        t = Throttle(
-            max_concurrency=5, min_dispatch_interval=0.0
-        )
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
         t.close()
         with pytest.raises(ThrottleClosed):
             async with t.acquire():
                 pass
 
     async def test_close_sets_state(self) -> None:
-        t = Throttle(
-            max_concurrency=5, min_dispatch_interval=0.0
-        )
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
         t.close()
         assert t.snapshot().state == ThrottleState.CLOSED
 
@@ -461,8 +447,6 @@ class TestDrain:
         await task
 
     async def test_drain_immediate_when_no_in_flight(self) -> None:
-        t = Throttle(
-            max_concurrency=5, min_dispatch_interval=0.0
-        )
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
         await t.drain()
         assert t.snapshot().state == ThrottleState.CLOSED

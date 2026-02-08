@@ -94,19 +94,17 @@ class Throttle:
     def from_dict(cls, data: dict[str, Any]) -> Throttle:
         """Build a Throttle from a plain dict."""
         config = ThrottleConfig.from_dict(data)
-        return cls(**{
-            f.name: getattr(config, f.name)
-            for f in config.__dataclass_fields__.values()
-        })
+        return cls(
+            **{f.name: getattr(config, f.name) for f in config.__dataclass_fields__.values()}
+        )
 
     @classmethod
     def from_env(cls, prefix: str = "GENTLIFY") -> Throttle:
         """Build a Throttle from environment variables."""
         config = ThrottleConfig.from_env(prefix)
-        return cls(**{
-            f.name: getattr(config, f.name)
-            for f in config.__dataclass_fields__.values()
-        })
+        return cls(
+            **{f.name: getattr(config, f.name) for f in config.__dataclass_fields__.values()}
+        )
 
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[Slot]:
@@ -159,34 +157,32 @@ class Throttle:
             self._circuit_breaker.record_success()
 
         # 2. Check cooling -> reaccelerate
-        if (
-            self._state == ThrottleState.COOLING
-            and self._cooling_start is not None
-        ):
+        if self._state == ThrottleState.COOLING and self._cooling_start is not None:
             elapsed = self._clock() - self._cooling_start
             if elapsed >= self._config.cooling_period:
-                old_c, new_c = self._concurrency.reaccelerate(
-                    self._safe_ceiling
-                )
-                old_i, new_i = self._dispatch.reaccelerate(
-                    self._config.min_dispatch_interval
-                )
+                old_c, new_c = self._concurrency.reaccelerate(self._safe_ceiling)
+                old_i, new_i = self._dispatch.reaccelerate(self._config.min_dispatch_interval)
                 self._state = ThrottleState.RUNNING
                 self._cooling_start = None
                 _log.info(
                     "Reaccelerated: concurrency %d->%d, interval %.3f->%.3f",
-                    old_c, new_c, old_i, new_i,
+                    old_c,
+                    new_c,
+                    old_i,
+                    new_i,
                 )
-                self._emit_event("reaccelerated", {
-                    "concurrency": (old_c, new_c),
-                    "interval": (old_i, new_i),
-                })
+                self._emit_event(
+                    "reaccelerated",
+                    {
+                        "concurrency": (old_c, new_c),
+                        "interval": (old_i, new_i),
+                    },
+                )
 
         # 3. Safe ceiling decay
         if self._last_failure_time is not None:
             decay_threshold = (
-                self._config.cooling_period
-                * self._config.safe_ceiling_decay_multiplier
+                self._config.cooling_period * self._config.safe_ceiling_decay_multiplier
             )
             elapsed = self._clock() - self._last_failure_time
             if elapsed >= decay_threshold:
@@ -196,7 +192,8 @@ class Throttle:
                 if old_ceiling != self._safe_ceiling:
                     _log.info(
                         "Safe ceiling decayed: %d -> %d",
-                        old_ceiling, self._safe_ceiling,
+                        old_ceiling,
+                        self._safe_ceiling,
                     )
 
         # 4. Token recording
@@ -211,9 +208,8 @@ class Throttle:
     def _handle_failure(self, exception: BaseException) -> None:
         """Process a failed request."""
         # 1. Failure predicate filtering
-        if (
-            self._config.failure_predicate is not None
-            and not self._config.failure_predicate(exception)
+        if self._config.failure_predicate is not None and not self._config.failure_predicate(
+            exception
         ):
             return
 
@@ -228,9 +224,7 @@ class Throttle:
         # 4. Check threshold -> decelerate
         if self._failure_window.count() >= self._config.failure_threshold:
             old_c, new_c = self._concurrency.decelerate()
-            old_i, new_i = self._dispatch.decelerate(
-                self._config.max_dispatch_interval
-            )
+            old_i, new_i = self._dispatch.decelerate(self._config.max_dispatch_interval)
             self._safe_ceiling = old_c
             self._failure_window.clear()
             self._state = ThrottleState.COOLING
@@ -238,16 +232,25 @@ class Throttle:
 
             _log.info(
                 "Decelerated: concurrency %d->%d, interval %.3f->%.3f",
-                old_c, new_c, old_i, new_i,
+                old_c,
+                new_c,
+                old_i,
+                new_i,
             )
-            self._emit_event("decelerated", {
-                "concurrency": (old_c, new_c),
-                "interval": (old_i, new_i),
-                "safe_ceiling": self._safe_ceiling,
-            })
-            self._emit_event("cooling_started", {
-                "cooling_period": self._config.cooling_period,
-            })
+            self._emit_event(
+                "decelerated",
+                {
+                    "concurrency": (old_c, new_c),
+                    "interval": (old_i, new_i),
+                    "safe_ceiling": self._safe_ceiling,
+                },
+            )
+            self._emit_event(
+                "cooling_started",
+                {
+                    "cooling_period": self._config.cooling_period,
+                },
+            )
 
     def _emit_event(self, kind: str, data: dict[str, Any]) -> None:
         """Emit a ThrottleEvent to the on_state_change callback."""
@@ -281,15 +284,11 @@ class Throttle:
             tokens_remaining=tokens_remaining,
         )
 
-    def record_success(
-        self, duration: float = 0.0, tokens_used: int = 0
-    ) -> None:
+    def record_success(self, duration: float = 0.0, tokens_used: int = 0) -> None:
         """Manually record a successful request."""
         self._handle_success(duration, tokens_used)
 
-    def record_failure(
-        self, exception: BaseException | None = None
-    ) -> None:
+    def record_failure(self, exception: BaseException | None = None) -> None:
         """Manually record a failed request."""
         exc = exception if exception is not None else Exception("manual failure")
         self._handle_failure(exc)
@@ -321,11 +320,13 @@ class Throttle:
     async def drain(self) -> None:
         """Wait for all in-flight requests to complete."""
         self._state = ThrottleState.DRAINING
-        _log.info("Draining — waiting for %d in-flight requests",
-                   self._concurrency.in_flight)
-        self._emit_event("draining", {
-            "in_flight": self._concurrency.in_flight,
-        })
+        _log.info("Draining — waiting for %d in-flight requests", self._concurrency.in_flight)
+        self._emit_event(
+            "draining",
+            {
+                "in_flight": self._concurrency.in_flight,
+            },
+        )
 
         while self._concurrency.in_flight > 0:
             await asyncio.sleep(0.05)

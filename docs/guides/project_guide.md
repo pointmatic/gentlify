@@ -18,6 +18,18 @@ The developer may optionally provide:
 - Constraints (no UI, no database, must run offline, etc.)
 - Target audience (CLI tool, library, web app, etc.)
 
+Additionally, the LLM should ask the developer the following question before writing the stories document:
+
+> **Will this project need CI/CD automation?** For example: GitHub Actions for linting/testing on every push, dynamic code coverage badges (Codecov/Coveralls), and/or automated publishing to a package registry (PyPI, npm, etc.) on tagged releases?
+
+If the answer is yes, the stories document should include a dedicated phase (typically the last phase) covering:
+
+- **CI workflow** — GitHub Actions (or equivalent) running lint, type-check, and tests on push/PR, with a Python/Node/etc. version matrix.
+- **Coverage reporting** — uploading coverage to a service like Codecov and adding a dynamic badge to the README.
+- **Release automation** — publishing to the package registry on version tags, preferably using trusted publishing (OIDC) to avoid storing API tokens.
+
+If the answer is no, skip this phase entirely.
+
 ---
 
 ## Workflow Overview
@@ -193,8 +205,9 @@ Recommended phase progression:
 | D | CLI & Library API | User-facing interfaces |
 | E | Testing & Quality | Test suites, coverage, edge case tests |
 | F | Documentation & Release | README, changelog, final testing, polish |
+| G | CI/CD & Automation | GitHub Actions, coverage badges, release automation (if requested) |
 
-Phases may be added, removed, or renamed to fit the project.
+Phases may be added, removed, or renamed to fit the project. Phase G (CI/CD) is only included if the developer answered "yes" to the CI/CD question in the prerequisites.
 
 #### Story Format
 

@@ -74,8 +74,7 @@ class CircuitBreaker:
             if self._half_open_probes >= self._config.half_open_max_calls:
                 retry_after = max(
                     0.0,
-                    self._current_open_duration
-                    - (self._clock() - self._opened_at),
+                    self._current_open_duration - (self._clock() - self._opened_at),
                 )
                 raise CircuitOpenError(retry_after=retry_after)
             self._half_open_probes += 1

@@ -273,38 +273,38 @@ Add `Throttle.from_dict()` and `Throttle.from_env()` class methods.
 
 ## Phase D: Testing & Quality
 
-### Story D.a: v0.13.0 Edge Case Tests [Planned]
+### Story D.a: v0.13.0 Edge Case Tests [Done]
 
 Dedicated edge case and stress tests.
 
-- [ ] Create `tests/test_edge_cases.py`
-  - [ ] Zero `total_tasks` — progress reports no ETA
-  - [ ] `max_concurrency=1` — deceleration stays at 1
-  - [ ] Immediate failure on first request — deceleration triggers correctly
-  - [ ] `failure_predicate` always returns `False` — no deceleration ever
-  - [ ] Circuit breaker with `open_duration=0` — immediately transitions to half-open
-  - [ ] Token budget of 1 — every request waits for window rollover
-  - [ ] Concurrent `drain()` + `acquire()` — drain completes, acquire raises
-  - [ ] `initial_concurrency=1`, `max_concurrency=10` — organic promotion via reacceleration
-  - [ ] Rapid successive failures — deceleration cascading prevention (counter cleared)
-  - [ ] `jitter_fraction=0.0` — no jitter, deterministic dispatch timing
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.13.0`
+- [x] Create `tests/test_edge_cases.py`
+  - [x] Zero `total_tasks` — progress reports no ETA
+  - [x] `max_concurrency=1` — deceleration stays at 1
+  - [x] Immediate failure on first request — deceleration triggers correctly
+  - [x] `failure_predicate` always returns `False` — no deceleration ever
+  - [x] Circuit breaker with `open_duration=0` — immediately transitions to half-open
+  - [x] Token budget of 1 — every request waits for window rollover
+  - [x] Concurrent `drain()` + `acquire()` — drain completes, acquire raises
+  - [x] `initial_concurrency=1`, `max_concurrency=10` — organic promotion via reacceleration
+  - [x] Rapid successive failures — deceleration cascading prevention (counter cleared)
+  - [x] `jitter_fraction=0.0` — no jitter, deterministic dispatch timing
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.13.0`
 
-### Story D.b: v0.14.0 Coverage and Type Checking Polish [Planned]
+### Story D.b: v0.14.0 Coverage and Type Checking Polish [Done]
 
 Achieve ≥95% coverage and zero mypy errors.
 
-- [ ] Run `pytest --cov=gentlify --cov-report=term-missing` and identify uncovered lines
-- [ ] Add tests to cover any gaps
-- [ ] Run `mypy --strict src/gentlify` and fix any errors
-- [ ] Run `ruff check src/ tests/` and fix any issues
-- [ ] Run `ruff format --check src/ tests/` and fix any formatting issues
-- [ ] Verify: coverage ≥ 95%
-- [ ] Verify: `mypy --strict` passes with zero errors
-- [ ] Verify: `ruff` passes with zero issues
-- [ ] Bump version to `0.14.0`
+- [x] Run `pytest --cov=gentlify --cov-report=term-missing` and identify uncovered lines
+- [x] Add tests to cover any gaps
+- [x] Run `mypy --strict src/gentlify` and fix any errors
+- [x] Run `ruff check src/ tests/` and fix any issues
+- [x] Run `ruff format --check src/ tests/` and fix any formatting issues
+- [x] Verify: coverage ≥ 95% (achieved 99%)
+- [x] Verify: `mypy --strict` passes with zero errors
+- [x] Verify: `ruff` passes with zero issues
+- [x] Bump version to `0.14.0`
 
 ---
 
@@ -341,3 +341,45 @@ Create a changelog summarizing all changes.
 
 - [ ] Create `CHANGELOG.md` with entries for v0.1.0 through v1.0.0
 - [ ] Follow Keep a Changelog format
+
+---
+
+## Phase F: CI/CD & Automation
+
+### Story F.a: v1.1.0 GitHub Actions CI [Planned]
+
+Set up continuous integration with GitHub Actions.
+
+- [ ] Create `.github/workflows/ci.yml`
+  - [ ] Trigger on push to `main` and on pull requests
+  - [ ] Matrix: Python 3.11, 3.12, 3.13, 3.14
+  - [ ] Steps: checkout, setup-python, install dev deps, `ruff check`, `ruff format --check`, `mypy --strict src/gentlify`, `pytest --cov=gentlify`
+  - [ ] Upload coverage report as artifact
+- [ ] Add CI status badge to `README.md`
+- [ ] Verify: push to repo triggers workflow and passes
+
+### Story F.b: v1.2.0 Dynamic Coverage Badge [Planned]
+
+Add a dynamic code coverage badge using Codecov or Coveralls.
+
+- [ ] Choose coverage service (Codecov recommended for open-source)
+- [ ] Add `codecov` upload step to `.github/workflows/ci.yml`
+  - [ ] Generate coverage XML: `pytest --cov=gentlify --cov-report=xml`
+  - [ ] Upload via `codecov/codecov-action@v4`
+- [ ] Add coverage badge to `README.md` (e.g. `[![codecov](https://codecov.io/gh/<org>/<repo>/...)]`)
+- [ ] Verify: coverage report appears on Codecov dashboard after push
+
+### Story F.c: v1.3.0 Release Automation [Planned]
+
+Automate PyPI publishing on tagged releases.
+
+- [ ] Create `.github/workflows/publish.yml`
+  - [ ] Trigger on push of version tags (`v*`)
+  - [ ] Steps: checkout, setup-python, build (`python -m build`), publish to PyPI via `pypa/gh-action-pypi-publish@release/v1`
+  - [ ] Use trusted publishing (OIDC) — no API token needed
+- [ ] Add `build` to dev dependencies in `pyproject.toml`
+- [ ] Document release process in `README.md` or `CONTRIBUTING.md`
+  - [ ] Bump version in `_version.py` and `pyproject.toml`
+  - [ ] Tag: `git tag v<version> && git push --tags`
+  - [ ] GitHub Action builds and publishes automatically
+- [ ] Verify: tag push triggers publish workflow

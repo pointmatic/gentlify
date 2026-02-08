@@ -191,24 +191,26 @@ class TestThrottleConfigFromDict:
         assert cfg == ThrottleConfig()
 
     def test_full_config(self) -> None:
-        cfg = ThrottleConfig.from_dict({
-            "max_concurrency": 10,
-            "initial_concurrency": 3,
-            "min_dispatch_interval": 0.5,
-            "max_dispatch_interval": 15.0,
-            "failure_threshold": 5,
-            "failure_window": 30.0,
-            "cooling_period": 120.0,
-            "safe_ceiling_decay_multiplier": 3.0,
-            "jitter_fraction": 0.3,
-            "total_tasks": 100,
-            "token_budget": {"max_tokens": 5000, "window_seconds": 60.0},
-            "circuit_breaker": {
-                "consecutive_failures": 5,
-                "open_duration": 10.0,
-                "half_open_max_calls": 2,
-            },
-        })
+        cfg = ThrottleConfig.from_dict(
+            {
+                "max_concurrency": 10,
+                "initial_concurrency": 3,
+                "min_dispatch_interval": 0.5,
+                "max_dispatch_interval": 15.0,
+                "failure_threshold": 5,
+                "failure_window": 30.0,
+                "cooling_period": 120.0,
+                "safe_ceiling_decay_multiplier": 3.0,
+                "jitter_fraction": 0.3,
+                "total_tasks": 100,
+                "token_budget": {"max_tokens": 5000, "window_seconds": 60.0},
+                "circuit_breaker": {
+                    "consecutive_failures": 5,
+                    "open_duration": 10.0,
+                    "half_open_max_calls": 2,
+                },
+            }
+        )
         assert cfg.max_concurrency == 10
         assert cfg.initial_concurrency == 3
         assert cfg.min_dispatch_interval == 0.5
@@ -240,9 +242,11 @@ class TestThrottleConfigFromDict:
         assert cfg.circuit_breaker is cb
 
     def test_partial_circuit_breaker_dict(self) -> None:
-        cfg = ThrottleConfig.from_dict({
-            "circuit_breaker": {"consecutive_failures": 20},
-        })
+        cfg = ThrottleConfig.from_dict(
+            {
+                "circuit_breaker": {"consecutive_failures": 20},
+            }
+        )
         assert cfg.circuit_breaker is not None
         assert cfg.circuit_breaker.consecutive_failures == 20
         assert cfg.circuit_breaker.open_duration == 30.0  # default
@@ -342,23 +346,27 @@ class TestThrottleFromDict:
         assert snap.concurrency == 20
 
     def test_with_token_budget(self) -> None:
-        t = Throttle.from_dict({
-            "max_concurrency": 10,
-            "token_budget": {
-                "max_tokens": 5000,
-                "window_seconds": 60.0,
-            },
-        })
+        t = Throttle.from_dict(
+            {
+                "max_concurrency": 10,
+                "token_budget": {
+                    "max_tokens": 5000,
+                    "window_seconds": 60.0,
+                },
+            }
+        )
         assert t.snapshot().tokens_remaining == 5000
 
     def test_with_circuit_breaker(self) -> None:
-        t = Throttle.from_dict({
-            "max_concurrency": 8,
-            "circuit_breaker": {
-                "consecutive_failures": 5,
-                "open_duration": 20.0,
-            },
-        })
+        t = Throttle.from_dict(
+            {
+                "max_concurrency": 8,
+                "circuit_breaker": {
+                    "consecutive_failures": 5,
+                    "open_duration": 20.0,
+                },
+            }
+        )
         snap = t.snapshot()
         assert snap.max_concurrency == 8
 
@@ -371,9 +379,7 @@ class TestThrottleFromDict:
             initial_concurrency=4,
             min_dispatch_interval=0.5,
             failure_threshold=5,
-            token_budget=TokenBudget(
-                max_tokens=2000, window_seconds=30.0
-            ),
+            token_budget=TokenBudget(max_tokens=2000, window_seconds=30.0),
         )
         data: dict[str, object] = {}
         for f in dataclasses.fields(original):
@@ -392,23 +398,17 @@ class TestThrottleFromDict:
 
 
 class TestThrottleFromEnv:
-    def test_produces_working_instance(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_produces_working_instance(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("GENTLIFY_MAX_CONCURRENCY", "15")
         t = Throttle.from_env()
         assert t.snapshot().max_concurrency == 15
 
-    def test_custom_prefix(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_custom_prefix(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("MYAPP_MAX_CONCURRENCY", "25")
         t = Throttle.from_env(prefix="MYAPP")
         assert t.snapshot().max_concurrency == 25
 
-    def test_with_token_budget_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_with_token_budget_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("GENTLIFY_MAX_CONCURRENCY", "10")
         monkeypatch.setenv("GENTLIFY_TOKEN_BUDGET_MAX", "3000")
         monkeypatch.setenv("GENTLIFY_TOKEN_BUDGET_WINDOW", "45.0")

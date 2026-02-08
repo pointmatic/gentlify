@@ -50,15 +50,11 @@ class CircuitBreakerConfig:
 
     def __post_init__(self) -> None:
         if self.consecutive_failures < 1:
-            raise ValueError(
-                f"consecutive_failures must be >= 1, got {self.consecutive_failures}"
-            )
+            raise ValueError(f"consecutive_failures must be >= 1, got {self.consecutive_failures}")
         if self.open_duration < 0:
             raise ValueError(f"open_duration must be >= 0, got {self.open_duration}")
         if self.half_open_max_calls < 1:
-            raise ValueError(
-                f"half_open_max_calls must be >= 1, got {self.half_open_max_calls}"
-            )
+            raise ValueError(f"half_open_max_calls must be >= 1, got {self.half_open_max_calls}")
 
 
 @dataclass(frozen=True)
