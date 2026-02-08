@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from gentlify import CircuitBreakerConfig, ThrottleConfig, TokenBudget
+from gentlify import CircuitBreakerConfig, Throttle, ThrottleConfig, TokenBudget
 
 # --- TokenBudget ---
 
@@ -329,3 +329,88 @@ class TestThrottleConfigFromEnv:
         assert cfg.max_concurrency == 7
         assert cfg.min_dispatch_interval == 0.2  # default
         assert cfg.failure_threshold == 3  # default
+
+
+# --- Throttle Factory Methods ---
+
+
+class TestThrottleFromDict:
+    def test_produces_working_instance(self) -> None:
+        t = Throttle.from_dict({"max_concurrency": 20})
+        snap = t.snapshot()
+        assert snap.max_concurrency == 20
+        assert snap.concurrency == 20
+
+    def test_with_token_budget(self) -> None:
+        t = Throttle.from_dict({
+            "max_concurrency": 10,
+            "token_budget": {
+                "max_tokens": 5000,
+                "window_seconds": 60.0,
+            },
+        })
+        assert t.snapshot().tokens_remaining == 5000
+
+    def test_with_circuit_breaker(self) -> None:
+        t = Throttle.from_dict({
+            "max_concurrency": 8,
+            "circuit_breaker": {
+                "consecutive_failures": 5,
+                "open_duration": 20.0,
+            },
+        })
+        snap = t.snapshot()
+        assert snap.max_concurrency == 8
+
+    def test_round_trip_config_to_dict_to_throttle(self) -> None:
+        """Config → dict → Throttle produces equivalent state."""
+        import dataclasses
+
+        original = ThrottleConfig(
+            max_concurrency=12,
+            initial_concurrency=4,
+            min_dispatch_interval=0.5,
+            failure_threshold=5,
+            token_budget=TokenBudget(
+                max_tokens=2000, window_seconds=30.0
+            ),
+        )
+        data: dict[str, object] = {}
+        for f in dataclasses.fields(original):
+            val = getattr(original, f.name)
+            if val is not None and dataclasses.is_dataclass(val):
+                data[f.name] = dataclasses.asdict(val)
+            elif val is not None:
+                data[f.name] = val
+
+        t = Throttle.from_dict(data)
+        snap = t.snapshot()
+        assert snap.max_concurrency == 12
+        assert snap.concurrency == 4
+        assert snap.dispatch_interval == 0.5
+        assert snap.tokens_remaining == 2000
+
+
+class TestThrottleFromEnv:
+    def test_produces_working_instance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("GENTLIFY_MAX_CONCURRENCY", "15")
+        t = Throttle.from_env()
+        assert t.snapshot().max_concurrency == 15
+
+    def test_custom_prefix(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("MYAPP_MAX_CONCURRENCY", "25")
+        t = Throttle.from_env(prefix="MYAPP")
+        assert t.snapshot().max_concurrency == 25
+
+    def test_with_token_budget_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("GENTLIFY_MAX_CONCURRENCY", "10")
+        monkeypatch.setenv("GENTLIFY_TOKEN_BUDGET_MAX", "3000")
+        monkeypatch.setenv("GENTLIFY_TOKEN_BUDGET_WINDOW", "45.0")
+        t = Throttle.from_env()
+        assert t.snapshot().tokens_remaining == 3000

@@ -255,19 +255,19 @@ Add `@throttle.wrap` decorator and `close()`/`drain()` lifecycle methods.
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.11.0`
 
-### Story C.c: v0.12.0 Factory Methods on Throttle [Planned]
+### Story C.c: v0.12.0 Factory Methods on Throttle [Done]
 
 Add `Throttle.from_dict()` and `Throttle.from_env()` class methods.
 
-- [ ] Add `from_dict(data)` classmethod to `Throttle` — delegates to `ThrottleConfig.from_dict()`
-- [ ] Add `from_env(prefix)` classmethod to `Throttle` — delegates to `ThrottleConfig.from_env()`
-- [ ] Add tests to `tests/test_config.py`
-  - [ ] Test `Throttle.from_dict()` produces working instance
-  - [ ] Test `Throttle.from_env()` produces working instance
-  - [ ] Test round-trip: config → dict → Throttle works
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.12.0`
+- [x] Add `from_dict(data)` classmethod to `Throttle` — delegates to `ThrottleConfig.from_dict()`
+- [x] Add `from_env(prefix)` classmethod to `Throttle` — delegates to `ThrottleConfig.from_env()`
+- [x] Add tests to `tests/test_config.py`
+  - [x] Test `Throttle.from_dict()` produces working instance
+  - [x] Test `Throttle.from_env()` produces working instance
+  - [x] Test round-trip: config → dict → Throttle works
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.12.0`
 
 ---
 
