@@ -310,30 +310,30 @@ Achieve ≥95% coverage and zero mypy errors.
 
 ## Phase E: Documentation & Release
 
-### Story E.a: v1.0.0 README and Release Polish [Planned]
+### Story E.a: v1.0.0 README and Release Polish [Done]
 
 Complete documentation and prepare for PyPI release.
 
-- [ ] Write full `README.md`
-  - [ ] Project description and motivation
-  - [ ] Installation (`pip install gentlify`)
-  - [ ] Quick start example (minimal usage)
-  - [ ] Context manager API example
-  - [ ] Decorator API example
-  - [ ] Token budget example
-  - [ ] Circuit breaker example
-  - [ ] Configuration (code, dict, env vars)
-  - [ ] Graceful shutdown example
-  - [ ] API reference summary (link to types)
-  - [ ] License
-- [ ] Verify all copyright headers present on every source file
-- [ ] Verify `py.typed` marker is present
-- [ ] Verify `pyproject.toml` has correct metadata (description, classifiers, urls, keywords)
-- [ ] Add PyPI classifiers: `Framework :: AsyncIO`, `Typing :: Typed`, `License :: OSI Approved :: Apache Software License`, etc.
-- [ ] Final full test run: `pytest --cov=gentlify`
-- [ ] Final `mypy --strict src/gentlify`
-- [ ] Final `ruff check src/ tests/`
-- [ ] Bump version to `1.0.0`
+- [x] Write full `README.md`
+  - [x] Project description and motivation
+  - [x] Installation (`pip install gentlify`)
+  - [x] Quick start example (minimal usage)
+  - [x] Context manager API example
+  - [x] Decorator API example
+  - [x] Token budget example
+  - [x] Circuit breaker example
+  - [x] Configuration (code, dict, env vars)
+  - [x] Graceful shutdown example
+  - [x] API reference summary (link to types)
+  - [x] License
+- [x] Verify all copyright headers present on every source file
+- [x] Verify `py.typed` marker is present
+- [x] Verify `pyproject.toml` has correct metadata (description, classifiers, urls, keywords)
+- [x] Add PyPI classifiers: `Framework :: AsyncIO`, `Typing :: Typed`, `License :: OSI Approved :: Apache Software License`, etc.
+- [x] Final full test run: `pytest --cov=gentlify` (195 passed, 99% coverage)
+- [x] Final `mypy --strict src/gentlify` (zero errors)
+- [x] Final `ruff check src/ tests/` (all passed)
+- [x] Bump version to `1.0.0`
 
 ### Story E.b: CHANGELOG [Planned]
 
