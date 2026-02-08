@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from gentlify._config import CircuitBreakerConfig, ThrottleConfig, TokenBudget
 from gentlify._exceptions import CircuitOpenError, GentlifyError, ThrottleClosed
 from gentlify._types import (
     ThrottleEvent,
@@ -22,10 +23,13 @@ from gentlify._version import __version__
 
 __all__ = [
     "__version__",
+    "CircuitBreakerConfig",
     "CircuitOpenError",
     "GentlifyError",
     "ThrottleClosed",
+    "ThrottleConfig",
     "ThrottleEvent",
     "ThrottleSnapshot",
     "ThrottleState",
+    "TokenBudget",
 ]

@@ -48,27 +48,27 @@ Define the foundational types, enums, and exceptions used throughout the library
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.2.0`
 
-### Story A.c: v0.3.0 Configuration and Validation [Planned]
+### Story A.c: v0.3.0 Configuration and Validation [Done]
 
 Configuration dataclasses with validation, `from_dict()`, and `from_env()` factories.
 
-- [ ] Create `src/gentlify/_config.py` with copyright header
-  - [ ] `TokenBudget` frozen dataclass
-  - [ ] `CircuitBreakerConfig` frozen dataclass (with `half_open_max_calls`)
-  - [ ] `ThrottleConfig` frozen dataclass with all fields and defaults
-  - [ ] `__post_init__` validation for all constraints (see tech spec)
-  - [ ] `from_dict()` static method — handles nested dicts for `token_budget` and `circuit_breaker`
-  - [ ] `from_env()` static method — reads env vars with prefix, maps to config fields
-- [ ] Update `src/gentlify/__init__.py` to re-export `ThrottleConfig`, `TokenBudget`, `CircuitBreakerConfig`
-- [ ] Create `tests/test_config.py`
-  - [ ] Test default construction
-  - [ ] Test all validation constraints (each invalid value raises `ValueError`)
-  - [ ] Test `from_dict()` with full config, partial config, nested dicts
-  - [ ] Test `from_env()` with mocked environment variables
-  - [ ] Test `from_env()` with missing vars (uses defaults)
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.3.0`
+- [x] Create `src/gentlify/_config.py` with copyright header
+  - [x] `TokenBudget` frozen dataclass
+  - [x] `CircuitBreakerConfig` frozen dataclass (with `half_open_max_calls`)
+  - [x] `ThrottleConfig` frozen dataclass with all fields and defaults
+  - [x] `__post_init__` validation for all constraints (see tech spec)
+  - [x] `from_dict()` static method — handles nested dicts for `token_budget` and `circuit_breaker`
+  - [x] `from_env()` static method — reads env vars with prefix, maps to config fields
+- [x] Update `src/gentlify/__init__.py` to re-export `ThrottleConfig`, `TokenBudget`, `CircuitBreakerConfig`
+- [x] Create `tests/test_config.py`
+  - [x] Test default construction
+  - [x] Test all validation constraints (each invalid value raises `ValueError`)
+  - [x] Test `from_dict()` with full config, partial config, nested dicts
+  - [x] Test `from_env()` with mocked environment variables
+  - [x] Test `from_env()` with missing vars (uses defaults)
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.3.0`
 
 ### Story A.d: v0.4.0 SlidingWindow [Planned]
 
