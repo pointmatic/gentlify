@@ -14,12 +14,15 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from gentlify import (
     CircuitBreakerConfig,
     CircuitOpenError,
     Throttle,
+    ThrottleClosed,
     ThrottleEvent,
     ThrottleSnapshot,
     ThrottleState,
@@ -313,3 +316,153 @@ class TestFromEnv:
         monkeypatch.setenv("GENTLIFY_MAX_CONCURRENCY", "15")
         t = Throttle.from_env()
         assert t.snapshot().max_concurrency == 15
+
+
+class TestWrapDecorator:
+    async def test_wrap_records_success(self) -> None:
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            total_tasks=10,
+        )
+
+        @t.wrap
+        async def my_fn(x: int) -> int:
+            return x * 2
+
+        result = await my_fn(5)
+        assert result == 10
+        assert t.snapshot().completed_tasks == 1
+
+    async def test_wrap_records_failure(self) -> None:
+        t = Throttle(
+            max_concurrency=10,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            failure_threshold=1,
+        )
+
+        @t.wrap
+        async def failing_fn() -> None:
+            raise ValueError("boom")
+
+        with pytest.raises(ValueError, match="boom"):
+            await failing_fn()
+        assert t.snapshot().concurrency == 5
+
+    async def test_wrap_preserves_function_name(self) -> None:
+        t = Throttle(
+            max_concurrency=5, min_dispatch_interval=0.0
+        )
+
+        @t.wrap
+        async def my_special_fn() -> None:
+            pass
+
+        assert my_special_fn.__name__ == "my_special_fn"
+
+    async def test_wrap_preserves_return_value(self) -> None:
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+        )
+
+        @t.wrap
+        async def compute(a: int, b: int) -> dict[str, int]:
+            return {"sum": a + b}
+
+        result = await compute(3, 7)
+        assert result == {"sum": 10}
+
+
+class TestClose:
+    async def test_close_rejects_new_acquires(self) -> None:
+        t = Throttle(
+            max_concurrency=5, min_dispatch_interval=0.0
+        )
+        t.close()
+        with pytest.raises(ThrottleClosed):
+            async with t.acquire():
+                pass
+
+    async def test_close_sets_state(self) -> None:
+        t = Throttle(
+            max_concurrency=5, min_dispatch_interval=0.0
+        )
+        t.close()
+        assert t.snapshot().state == ThrottleState.CLOSED
+
+    async def test_in_flight_completes_after_close(self) -> None:
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+        )
+        completed = False
+
+        async def long_request() -> None:
+            nonlocal completed
+            async with t.acquire():
+                await asyncio.sleep(0.1)
+                completed = True
+
+        task = asyncio.create_task(long_request())
+        await asyncio.sleep(0.02)
+        t.close()
+        # In-flight request should still complete
+        await task
+        assert completed
+
+
+class TestDrain:
+    async def test_drain_waits_for_in_flight(self) -> None:
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+        )
+        completed = False
+
+        async def long_request() -> None:
+            nonlocal completed
+            async with t.acquire():
+                await asyncio.sleep(0.1)
+                completed = True
+
+        task = asyncio.create_task(long_request())
+        await asyncio.sleep(0.02)
+        await t.drain()
+        assert completed
+        assert t.snapshot().state == ThrottleState.CLOSED
+        await task  # ensure no unhandled exceptions
+
+    async def test_close_then_drain(self) -> None:
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+        )
+        completed = False
+
+        async def long_request() -> None:
+            nonlocal completed
+            async with t.acquire():
+                await asyncio.sleep(0.1)
+                completed = True
+
+        task = asyncio.create_task(long_request())
+        await asyncio.sleep(0.02)
+        t.close()
+        await t.drain()
+        assert completed
+        assert t.snapshot().state == ThrottleState.CLOSED
+        await task
+
+    async def test_drain_immediate_when_no_in_flight(self) -> None:
+        t = Throttle(
+            max_concurrency=5, min_dispatch_interval=0.0
+        )
+        await t.drain()
+        assert t.snapshot().state == ThrottleState.CLOSED

@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import functools
 import logging
 import random
 import time
@@ -296,3 +298,38 @@ class Throttle:
         """Manually record token consumption."""
         if self._token_bucket is not None:
             self._token_bucket.consume(count)
+
+    def wrap(
+        self,
+        fn: Any,
+    ) -> Any:
+        """Decorator API: wrap an async function with acquire()."""
+
+        @functools.wraps(fn)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            async with self.acquire():
+                return await fn(*args, **kwargs)
+
+        return wrapper
+
+    def close(self) -> None:
+        """Signal that no new requests should be accepted."""
+        self._state = ThrottleState.CLOSED
+        _log.info("Throttle closed — no new requests accepted")
+        self._emit_event("closed", {})
+
+    async def drain(self) -> None:
+        """Wait for all in-flight requests to complete."""
+        self._state = ThrottleState.DRAINING
+        _log.info("Draining — waiting for %d in-flight requests",
+                   self._concurrency.in_flight)
+        self._emit_event("draining", {
+            "in_flight": self._concurrency.in_flight,
+        })
+
+        while self._concurrency.in_flight > 0:
+            await asyncio.sleep(0.05)
+
+        self._state = ThrottleState.CLOSED
+        _log.info("Drain complete — throttle closed")
+        self._emit_event("drained", {})

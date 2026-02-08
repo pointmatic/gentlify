@@ -237,23 +237,23 @@ Wire all components together into the `Throttle` orchestrator with `acquire()` c
 - [x] Verify: `mypy --strict` passes
 - [x] Bump version to `0.10.0`
 
-### Story C.b: v0.11.0 Decorator API and Graceful Shutdown [Planned]
+### Story C.b: v0.11.0 Decorator API and Graceful Shutdown [Done]
 
 Add `@throttle.wrap` decorator and `close()`/`drain()` lifecycle methods.
 
-- [ ] Add `wrap(fn)` to `Throttle` — decorator that wraps async function with `acquire()`
-- [ ] Add `close()` to `Throttle` — sets state to `CLOSED`, rejects new `acquire()` calls
-- [ ] Add `drain()` to `Throttle` — awaits until `in_flight == 0`, sets state to `DRAINING` then back to `CLOSED`
-- [ ] Add tests to `tests/test_throttle.py`
-  - [ ] Test `@wrap` decorator records success/failure automatically
-  - [ ] Test `@wrap` preserves function signature and return value
-  - [ ] Test `close()` causes `acquire()` to raise `ThrottleClosed`
-  - [ ] Test `drain()` waits for in-flight requests
-  - [ ] Test `close()` + `drain()` sequence
-  - [ ] Test in-flight requests complete normally after `close()`
-- [ ] Verify: `pytest` passes
-- [ ] Verify: `mypy --strict` passes
-- [ ] Bump version to `0.11.0`
+- [x] Add `wrap(fn)` to `Throttle` — decorator that wraps async function with `acquire()`
+- [x] Add `close()` to `Throttle` — sets state to `CLOSED`, rejects new `acquire()` calls
+- [x] Add `drain()` to `Throttle` — awaits until `in_flight == 0`, sets state to `DRAINING` then back to `CLOSED`
+- [x] Add tests to `tests/test_throttle.py`
+  - [x] Test `@wrap` decorator records success/failure automatically
+  - [x] Test `@wrap` preserves function signature and return value
+  - [x] Test `close()` causes `acquire()` to raise `ThrottleClosed`
+  - [x] Test `drain()` waits for in-flight requests
+  - [x] Test `close()` + `drain()` sequence
+  - [x] Test in-flight requests complete normally after `close()`
+- [x] Verify: `pytest` passes
+- [x] Verify: `mypy --strict` passes
+- [x] Bump version to `0.11.0`
 
 ### Story C.c: v0.12.0 Factory Methods on Throttle [Planned]
 
