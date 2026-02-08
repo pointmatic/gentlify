@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gentlify — Adaptive Async Rate Limiting for Python</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --cyan: #4aeadc;
+      --cyan-dim: #2cb8ac;
+      --bg: #0e1117;
+      --surface: #161b22;
+      --surface-hover: #1c2230;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --border: #30363d;
+      --code-bg: #1a1f2b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Banner */
+    .banner { width: 100%; display: block; }
+    .banner img { width: 100%; height: auto; display: block; }
+
+    /* Nav */
+    .nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .nav-brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface-hover);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-github:hover {
+      background: #282e38;
+      border-color: var(--text-muted);
+    }
+    .btn-github svg { flex-shrink: 0; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem 3rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .hero h1 span { color: var(--cyan); }
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Install box */
+    .install {
+      display: inline-block;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: 1rem;
+      color: var(--cyan);
+      user-select: all;
+    }
+    .install .prompt { color: var(--text-muted); user-select: none; }
+
+    /* Features grid */
+    .features {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 3rem 2rem 4rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--cyan-dim); }
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--cyan);
+    }
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Code example */
+    .example {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+    .example h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      white-space: pre;
+    }
+    .code-block .kw { color: #ff7b72; }
+    .code-block .fn { color: #d2a8ff; }
+    .code-block .str { color: #a5d6ff; }
+    .code-block .cm { color: #8b949e; }
+    .code-block .num { color: #79c0ff; }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .footer a { color: var(--cyan-dim); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 1.75rem; }
+      .hero p { font-size: 1rem; }
+      .nav { padding: 0.75rem 1rem; }
+      .nav-links { gap: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="banner">
+    <img src="images/gentlify_banner_wide.png" alt="gentlify — Tame the angry APIs">
+  </div>
+
+  <nav class="nav">
+    <a href="#" class="nav-brand">gentlify</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#quickstart">Quick Start</a>
+      <a href="https://github.com/pointmatic/gentlify" class="btn-github" target="_blank" rel="noopener">
+        <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        Code
+      </a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <h1>Adaptive async rate limiting for <span>Python</span></h1>
+    <p>Closed-loop feedback control for API concurrency. When APIs push back, gentlify slows down. When pressure eases, it speeds up.</p>
+    <div class="install"><span class="prompt">$ </span>pip install gentlify</div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="feature-card">
+      <h3>Adaptive Concurrency</h3>
+      <p>Dynamic concurrency limits that decelerate on failures and cautiously recover after a cooling period of sustained success.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Dispatch Interval + Jitter</h3>
+      <p>Enforces minimum time gaps between requests with stochastic jitter to prevent thundering-herd bursts.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Token-Aware Budgeting</h3>
+      <p>Track per-window resource consumption &mdash; LLM tokens, API credits, bytes &mdash; independently of request-count limits.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Circuit Breaker</h3>
+      <p>Hard stop after sustained failures with automatic half-open probing for safe recovery.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Zero Dependencies</h3>
+      <p>Pure Python standard library. No runtime dependencies. Ships with py.typed and passes mypy --strict.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Progress &amp; Observability</h3>
+      <p>Real-time snapshots with ETA, structured event callbacks, and standard logging integration.</p>
+    </div>
+  </section>
+
+  <section class="example" id="quickstart">
+    <h2>Quick Start</h2>
+    <div class="code-block"><span class="kw">from</span> gentlify <span class="kw">import</span> Throttle
+
+throttle = <span class="fn">Throttle</span>(max_concurrency=<span class="num">5</span>)
+
+<span class="kw">async def</span> <span class="fn">process</span>(items):
+    <span class="kw">async with</span> asyncio.<span class="fn">TaskGroup</span>() <span class="kw">as</span> tg:
+        <span class="kw">for</span> item <span class="kw">in</span> items:
+            tg.<span class="fn">create_task</span>(<span class="fn">call_one</span>(item))
+
+<span class="kw">async def</span> <span class="fn">call_one</span>(item):
+    <span class="kw">async with</span> throttle.<span class="fn">acquire</span>() <span class="kw">as</span> slot:
+        result = <span class="kw">await</span> <span class="fn">call_api</span>(item)
+        slot.<span class="fn">record_tokens</span>(result.usage.total_tokens)
+    <span class="cm"># Success/failure recorded automatically</span></div>
+  </section>
+
+  <footer class="footer">
+    <p>Copyright &copy; 2026 Pointmatic &middot; <a href="https://github.com/pointmatic/gentlify">GitHub</a> &middot; Apache-2.0 License</p>
+  </footer>
+
+</body>
+</html>
