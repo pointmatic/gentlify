@@ -553,26 +553,26 @@ Comprehensive tests for the `execute()` API.
 - [x] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
 - [x] Verify: coverage ≥ 95%
 
-### Story H.c: v2.0.0-rc.1 Documentation Overhaul [Planned]
+### Story H.c: v2.0.0-rc.1 Documentation Overhaul [Done]
 
 Restructure all documentation to lead with `execute()` as the primary API.
 
-- [ ] Rewrite `README.md`
-  - [ ] Quick Start: lead with `execute()` example (simple black-box call)
-  - [ ] Second example: `execute()` with custom logic (token recording, result inspection)
-  - [ ] Decorator API section: show `@wrap` as sugar, note it delegates to `execute()`
-  - [ ] Context Manager section: reposition as "Advanced: Manual Control" for custom orchestration
-  - [ ] Retry section: show retry working with `execute()` (primary) and note it also works with `wrap()`
-  - [ ] Add "Idempotency" note: "Your callback may run multiple times when retry is configured. Use `slot.attempt` for idempotency keys if needed."
-  - [ ] Update Types table: add `slot.attempt` description
-- [ ] Update `docs/index.html`
-  - [ ] Update Quick Start code example to use `execute()`
-- [ ] Update `docs/specs/descriptions.md`
-  - [ ] Update feature card descriptions if needed
-- [ ] Update `CHANGELOG.md`
-  - [ ] Add v2.0.0 entry documenting the new `execute()` API and README restructure
-  - [ ] Note: no removed APIs, `acquire()` and `wrap()` still work
-- [ ] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
+- [x] Rewrite `README.md`
+  - [x] Quick Start: lead with `execute()` example (simple black-box call)
+  - [x] Second example: `execute()` with custom logic (token recording, result inspection)
+  - [x] Decorator API section: show `@wrap` as sugar, note it delegates to `execute()`
+  - [x] Context Manager section: reposition as "Advanced: Manual Control" for custom orchestration
+  - [x] Retry section: show retry working with `execute()` (primary) and note it also works with `wrap()`
+  - [x] Add "Idempotency" note: "Your callback may run multiple times when retry is configured. Use `slot.attempt` for idempotency keys if needed."
+  - [x] Update Types table: add `slot.attempt` description
+- [x] Update `docs/index.html`
+  - [x] Update Quick Start code example to use `execute()`
+- [x] Update `docs/specs/descriptions.md`
+  - [x] Update feature card descriptions if needed (no changes needed — cards are feature-level)
+- [x] Update `CHANGELOG.md`
+  - [x] Add v2.0.0 entry documenting the new `execute()` API and README restructure
+  - [x] Note: no removed APIs, `acquire()` and `wrap()` still work
+- [x] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
 
 ### Story H.d: v2.0.0 Final Release [Planned]
 
