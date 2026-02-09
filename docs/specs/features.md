@@ -39,11 +39,12 @@ gentlify is a **Python library** (no CLI) targeting **Python 3.11+** (developed 
 
 ### Usability Requirements
 
-1. **Context manager API** — Primary usage is `async with throttle.acquire(): ...` for fine-grained control.
-2. **Decorator API** — `@throttle.wrap` decorator for async functions that automatically acquires/releases and records success/failure.
-3. **Configuration from code** — All parameters settable via constructor kwargs with sensible defaults.
-4. **Configuration from dict/env** — Provide a `from_dict()` / `from_env()` factory for configuration without code changes.
-5. **Multiple throttle instances** — Users can create independent throttle instances for different API providers in the same process.
+1. **Unified execute API** — Primary usage is `await throttle.execute(fn)` — pass an async callable, get throttling + retry + custom logic in one call.
+2. **Decorator API** — `@throttle.wrap` decorator for async functions that automatically acquires/releases and records success/failure. Delegates to `execute()` internally.
+3. **Context manager API** — `async with throttle.acquire(): ...` for advanced use cases requiring manual orchestration (e.g., middleware pipelines, conditional success/failure, batch operations).
+4. **Configuration from code** — All parameters settable via constructor kwargs with sensible defaults.
+5. **Configuration from dict/env** — Provide a `from_dict()` / `from_env()` factory for configuration without code changes.
+6. **Multiple throttle instances** — Users can create independent throttle instances for different API providers in the same process.
 
 ### Non-goals
 
@@ -191,9 +192,9 @@ When `total_tasks` is set, the throttle tracks completion progress and computes 
 - `throttle.snapshot()` — returns a `ThrottleSnapshot` at any time.
 - `on_progress` callback — invoked at configurable milestones (default: every 10%).
 
-### FR-8: Context Manager API
+### FR-8: Context Manager API (Advanced)
 
-The primary usage pattern:
+For advanced use cases requiring manual orchestration, `acquire()` provides a low-level context manager. Most users should prefer `execute()` (FR-13) or `@wrap` (FR-9).
 
 ```python
 async with throttle.acquire() as slot:
@@ -211,11 +212,13 @@ The context manager:
 5. Yields control to the user's code.
 6. On exit, records success or failure and updates progress.
 
+**Note:** Retry does not apply to `acquire()` — the context manager body runs exactly once. Developers who need retry with `acquire()` must implement their own retry loop. For automatic retry, use `execute()` or `@wrap`.
+
 For users who need manual control (e.g., middleware pipelines, conditional success/failure, batch operations), `record_success(duration, tokens_used)` and `record_failure(exception)` are also available as public methods on the throttle instance directly.
 
 ### FR-9: Decorator API
 
-For simpler use cases:
+For wrapping existing async functions:
 
 ```python
 @throttle.wrap
@@ -227,7 +230,7 @@ async def call_api(prompt: str) -> str:
 results = await asyncio.gather(*[call_api(p) for p in prompts])
 ```
 
-The decorator wraps the function with `acquire()` and records the outcome. Token reporting requires the context manager API.
+The decorator delegates to `execute()` internally, so retry applies automatically if configured. Token reporting requires `execute()` with a callback or the context manager API.
 
 ### FR-10: Multiple Throttle Instances
 
@@ -271,6 +274,11 @@ Configuration:
 | `max_delay` | `float` | `60.0` | Maximum backoff delay (seconds) |
 | `retryable` | `Callable \| None` | `None` | Predicate to filter retryable exceptions (None = retry all) |
 
+Retry works with all three APIs:
+- **`execute(fn)`** — primary, recommended. Retry is automatic.
+- **`@wrap`** — delegates to `execute()`, retry is automatic.
+- **`acquire()`** — retry does not apply. Developers must implement their own retry loop.
+
 Usage:
 
 ```python
@@ -281,11 +289,52 @@ throttle = Throttle(
     retry=RetryConfig(max_attempts=3, backoff="exponential_jitter"),
 )
 
-async with throttle.acquire() as slot:
-    result = await call_api(item)  # retried up to 3 times on failure
+# Recommended: execute() with retry
+result = await throttle.execute(lambda slot: call_api(item))
 ```
 
-The decorator API also supports retry — retries are handled transparently inside the `acquire()` context.
+### FR-13: Unified Execute API
+
+The primary API for running work inside a throttled slot:
+
+```python
+result = await throttle.execute(my_task)
+```
+
+`execute(fn)` accepts an async callable `fn(slot) -> T` where `slot` is a `Slot` instance providing:
+- `slot.record_tokens(count)` — report token consumption
+- `slot.attempt` — zero-indexed attempt number (0 on first call, increments on retry)
+
+The method:
+1. Acquires a concurrency slot, enforces dispatch interval, checks circuit breaker and token budget.
+2. Calls `fn(slot)`. If it succeeds, records success and returns the result.
+3. If it fails and retry is configured, checks `is_retryable()`, sleeps with backoff, and retries.
+4. Intermediate failures notify the circuit breaker and emit `retry` events, but do **not** trigger throttle deceleration.
+5. Only the final failure (after all retries exhausted) is recorded as a failure for the throttle's adaptive logic.
+6. Releases the concurrency slot.
+
+Examples:
+
+```python
+# Simple — just pass a callable
+result = await throttle.execute(lambda slot: call_api(item))
+
+# With custom logic — token recording, result inspection
+async def my_task(slot):
+    result = await call_api(item)
+    slot.record_tokens(result.usage.total_tokens)
+    return result.text
+
+text = await throttle.execute(my_task)
+
+# With idempotency key using slot.attempt
+async def safe_write(slot):
+    return await post_api(item, idempotency_key=f"{item.id}-{slot.attempt}")
+
+await throttle.execute(safe_write)
+```
+
+**Idempotency note:** When retry is configured, the callable may be invoked up to `max_attempts` times. Ensure your operation is safe to retry, or use `slot.attempt` to build idempotency keys.
 
 ### FR-11: Graceful Shutdown
 
@@ -401,7 +450,8 @@ The project is considered complete when:
 7. `from_dict()` and `from_env()` produce correctly configured instances.
 8. `drain()` and `close()` enable graceful shutdown without dropping in-flight requests.
 9. Built-in retry with configurable backoff retries failed requests inside the slot without disrupting throttle accounting.
-10. All tests pass with ≥95% coverage.
+10. `execute(fn)` provides a unified API where developers get throttling, retry, and custom logic in one call.
+11. All tests pass with ≥95% coverage.
 11. `mypy --strict` passes with zero errors.
 12. The library has zero runtime dependencies.
 13. The `py.typed` marker is present and type stubs are complete.

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-09
+
+### Added
+
+- `throttle.execute(fn)` — unified primary API that runs an async callable inside a throttled slot with automatic retry
+  - Callable receives a `Slot` with `record_tokens()` and `attempt` (zero-indexed attempt number for idempotency keys)
+  - Retry, throttling, and custom logic in one call — no need to choose between `acquire()` and `wrap()`
+- `Slot.attempt` property — zero-indexed attempt number, set by the retry loop
+- `Slot._set_attempt()` internal method for retry loop bookkeeping
+- `tests/test_execute.py` — 18 tests covering basic flow, token recording, retry, slot.attempt, circuit breaker interaction, concurrency, and custom logic
+- Execute edge case tests in `test_edge_cases.py` (3 tests)
+
+### Changed
+
+- `wrap()` now delegates to `execute()` internally (behavior unchanged)
+- `acquire()` docstring updated — positioned as advanced/escape-hatch API; retry does not apply
+- README restructured: Quick Start leads with `execute()`, `acquire()` moved to "Advanced: Manual Control"
+- `docs/index.html` Quick Start code example updated to use `execute()`
+- `features.md` updated: FR-13 (Unified Execute API), FR-8/FR-9/FR-12 updated
+- `tech_spec.md` updated: `execute()` flow, `Slot.attempt`, usage examples
+
+### Removed
+
+- `_call_with_retry()` private method (logic absorbed into `execute()` via `_call_fn_with_retry()`)
+
 ## [1.6.1] - 2026-02-08
 
 ### Fixed

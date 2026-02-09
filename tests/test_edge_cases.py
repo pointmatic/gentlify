@@ -306,3 +306,78 @@ class TestRetrySucceedsOnLastAttempt:
         result = await flaky()
         assert result == "finally"
         assert call_count == 3
+
+
+class TestExecuteMaxAttemptsOne:
+    async def test_execute_max_attempts_one_no_retry(self) -> None:
+        """execute() with max_attempts=1 behaves like no retry."""
+        call_count = 0
+
+        async def failing(slot):  # type: ignore[no-untyped-def]
+            nonlocal call_count
+            call_count += 1
+            raise ValueError("fail")
+
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            retry=RetryConfig(max_attempts=1, backoff="fixed", base_delay=0.0),
+        )
+        with pytest.raises(ValueError, match="fail"):
+            await t.execute(failing)
+        assert call_count == 1
+
+
+class TestExecuteBaseException:
+    async def test_keyboard_interrupt_propagates_with_predicate(self) -> None:
+        """Non-Exception BaseException propagates when predicate excludes it."""
+        call_count = 0
+
+        async def task(slot):  # type: ignore[no-untyped-def]
+            nonlocal call_count
+            call_count += 1
+            raise KeyboardInterrupt()
+
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+                retryable=lambda exc: isinstance(exc, Exception),
+            ),
+        )
+        with pytest.raises(KeyboardInterrupt):
+            await t.execute(task)
+        assert call_count == 1
+
+
+class TestExecuteRetryWithFailurePredicate:
+    async def test_retry_and_failure_predicate_interaction(self) -> None:
+        """Retry + failure_predicate: only predicate-matching failures trigger deceleration."""
+        call_count = 0
+
+        async def always_fails(slot):  # type: ignore[no-untyped-def]
+            nonlocal call_count
+            call_count += 1
+            raise TypeError("app error")
+
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            failure_predicate=lambda exc: isinstance(exc, ValueError),
+            retry=RetryConfig(
+                max_attempts=3,
+                backoff="fixed",
+                base_delay=0.0,
+                retryable=lambda exc: isinstance(exc, TypeError),
+            ),
+        )
+        with pytest.raises(TypeError):
+            await t.execute(always_fails)
+        # TypeError is retryable but not a "failure" per failure_predicate
+        # So all 3 attempts run, but no deceleration failure recorded
+        assert call_count == 3
+        snap = t.snapshot()
+        assert snap.failure_count == 0

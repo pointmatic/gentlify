@@ -446,15 +446,15 @@ Backoff computation:
 - **exponential:** `min(base_delay * 2^attempt, max_delay)`.
 - **exponential_jitter:** `uniform(0, min(base_delay * 2^attempt, max_delay))`.
 
-The retry loop itself lives in `_throttle.py`'s `acquire()` method, which calls `RetryHandler` for delay computation and retryable checks.
+The retry loop itself lives in `_throttle.py`'s `execute()` method, which calls `RetryHandler` for delay computation and retryable checks.
 
 ### `_slot.py` — Slot
 
-The object yielded by the `acquire()` context manager.
+The object yielded by `acquire()` and passed to `execute()` callbacks.
 
 ```python
 class Slot:
-    def __init__(self, throttle: Throttle) -> None: ...
+    def __init__(self) -> None: ...
 
     def record_tokens(self, count: int) -> None:
         """Report token consumption for this request."""
@@ -462,9 +462,16 @@ class Slot:
     @property
     def tokens_reported(self) -> int:
         """Tokens reported via record_tokens() during this slot's lifetime."""
+
+    @property
+    def attempt(self) -> int:
+        """Zero-indexed attempt number. 0 on first call, increments on retry."""
+
+    def _set_attempt(self, n: int) -> None:
+        """Internal: set the attempt number. Not part of the public API."""
 ```
 
-`Slot` is a lightweight handle. Token counts reported via `record_tokens()` are forwarded to the throttle's `TokenBucket` on context exit.
+`Slot` is a lightweight handle. Token counts reported via `record_tokens()` are forwarded to the throttle's `TokenBucket` on context exit. The `attempt` property is set by the retry loop in `execute()` and allows callbacks to build idempotency keys.
 
 ### `_throttle.py` — Throttle (Main Orchestrator)
 
@@ -479,13 +486,16 @@ class Throttle:
     @classmethod
     def from_env(cls, prefix: str = "GENTLIFY") -> Throttle: ...
 
+    async def execute(self, fn: Callable[[Slot], Awaitable[T]]) -> T:
+        """Primary API: run an async callable inside a throttled slot with retry."""
+
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[Slot]:
-        """Primary API: acquire a throttled slot. If retry is configured,
-        the user's code block is retried on failure."""
+        """Advanced API: acquire a throttled slot as a context manager.
+        Retry does not apply — the body runs exactly once."""
 
     def wrap(self, fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
-        """Decorator API: wrap an async function with acquire()."""
+        """Decorator API: wrap an async function. Delegates to execute() internally."""
 
     def record_success(self, duration: float = 0.0, tokens_used: int = 0) -> None:
         """Manually record a successful request."""
@@ -506,6 +516,29 @@ class Throttle:
         """Wait for all in-flight requests to complete."""
 ```
 
+#### `execute()` flow:
+
+1. Check state — raise `ThrottleClosed` if closed/draining.
+2. `circuit_breaker.check()` — raise `CircuitOpenError` if open.
+3. `concurrency_controller.acquire()` — wait for semaphore slot.
+4. `dispatch_gate.wait()` — enforce interval + jitter.
+5. `token_bucket.wait_for_budget()` — wait for token budget (if configured).
+6. Create `Slot` and start timing.
+7. Call `fn(slot)` inside retry loop:
+   a. Set `slot._set_attempt(attempt)` before each invocation.
+   b. If `fn(slot)` succeeds: call `_handle_success(duration, slot.tokens_reported)`, release concurrency, return result.
+   c. If `fn(slot)` raises and retry is configured:
+      - Check `retry_handler.is_retryable(exc)` — if not retryable, fall through to failure.
+      - If not the last attempt:
+        - Record intermediate failure on circuit breaker (but NOT throttle deceleration).
+        - Emit `retry` event via `on_state_change`.
+        - Sleep for `retry_handler.compute_delay(attempt)`.
+        - Check circuit breaker — if open, raise `CircuitOpenError`.
+        - Continue to next attempt.
+      - If last attempt: fall through to failure.
+   d. On final failure: call `_handle_failure(exception)`, release concurrency, re-raise.
+8. Always: `concurrency_controller.release()`.
+
 #### `acquire()` flow:
 
 1. Check state — raise `ThrottleClosed` if closed/draining.
@@ -516,20 +549,10 @@ class Throttle:
 6. Yield `Slot` to user code.
 7. On `__aexit__`:
    - If no exception: call `_handle_success(duration, slot.tokens_reported)`.
-   - If exception and retry is configured:
-     a. Check `retry_handler.is_retryable(exc)` — if not retryable, fall through to failure.
-     b. For each retry attempt up to `max_attempts - 1`:
-        - Emit `retry` event via `on_state_change`.
-        - Sleep for `retry_handler.compute_delay(attempt)`.
-        - Check circuit breaker — if open, raise `CircuitOpenError`.
-        - Re-yield slot to user code (re-enter the user's context body).
-        - If success: call `_handle_success()` and break.
-        - If failure: continue to next attempt.
-     c. If all retries exhausted: call `_handle_failure(exception)` with the last exception.
-   - If exception and retry is not configured: call `_handle_failure(exception)`.
-   - Always: `concurrency_controller.release()`, update progress.
+   - If exception: call `_handle_failure(exception)`.
+   - Always: `concurrency_controller.release()`.
 
-**Note:** Because `acquire()` is an async context manager, retry requires the user's code block to be re-executable. The decorator API (`wrap`) naturally supports this since the wrapped function is a callable. For the context manager API, retry wraps the user's block internally — the slot is re-yielded for each attempt.
+**Note:** Retry does not apply to `acquire()`. The context manager body runs exactly once. For automatic retry, use `execute()` or `@wrap`.
 
 #### `_handle_success()`:
 
@@ -631,7 +654,7 @@ __all__ = [
 
 ### Usage Examples
 
-#### Minimal
+#### Minimal — execute()
 
 ```python
 from gentlify import Throttle
@@ -640,34 +663,27 @@ throttle = Throttle()
 
 async def process(items):
     for item in items:
-        async with throttle.acquire():
-            await call_api(item)
+        await throttle.execute(lambda slot: call_api(item))
 ```
 
-#### With token budget and circuit breaker
+#### With custom logic — token recording, result inspection
 
 ```python
-from gentlify import Throttle, TokenBudget, CircuitBreakerConfig
+from gentlify import Throttle, TokenBudget, RetryConfig
 
 throttle = Throttle(
     max_concurrency=5,
-    initial_concurrency=2,
     token_budget=TokenBudget(max_tokens=10_000, window_seconds=60.0),
-    circuit_breaker=CircuitBreakerConfig(consecutive_failures=10),
-    on_state_change=lambda event: print(f"[{event.kind}] {event.data}"),
-    on_progress=lambda snap: print(f"{snap.percentage:.0f}% done, ETA {snap.eta_seconds:.0f}s"),
-    total_tasks=100,
+    retry=RetryConfig(max_attempts=3),
 )
 
-async def process(prompts):
-    async with asyncio.TaskGroup() as tg:
-        for prompt in prompts:
-            tg.create_task(call_one(prompt))
-
 async def call_one(prompt):
-    async with throttle.acquire() as slot:
+    async def task(slot):
         result = await llm_client.complete(prompt)
         slot.record_tokens(result.usage.total_tokens)
+        return result.text
+
+    return await throttle.execute(task)
 ```
 
 #### Decorator API
@@ -682,6 +698,14 @@ async def call_api(prompt: str) -> str:
     return await client.complete(prompt)
 
 results = await asyncio.gather(*[call_api(p) for p in prompts])
+```
+
+#### Advanced — context manager (no retry)
+
+```python
+async with throttle.acquire() as slot:
+    result = await call_api(item)
+    slot.record_tokens(result.usage.total_tokens)
 ```
 
 #### Graceful shutdown
@@ -762,12 +786,13 @@ Each internal module has a dedicated test file. Tests use `FakeClock` and determ
 | Test File | Covers |
 |-----------|--------|
 | `test_throttle.py` | Full Throttle lifecycle: acquire, success/failure recording, deceleration/reacceleration, context manager, decorator, close/drain, snapshot, callbacks, multiple instances, retry integration |
+| `test_execute.py` | Execute API: basic flow, token recording, retry, slot.attempt, circuit breaker interaction, concurrent calls, custom logic |
 
 ### Edge Case Tests
 
 | Test File | Covers |
 |-----------|--------|
-| `test_edge_cases.py` | Zero total_tasks, single concurrency, immediate first-request failure, failure_predicate always False, circuit breaker with zero delay, max_concurrency=1 with deceleration, token budget of 1, concurrent drain + acquire |
+| `test_edge_cases.py` | Zero total_tasks, single concurrency, immediate first-request failure, failure_predicate always False, circuit breaker with zero delay, max_concurrency=1 with deceleration, token budget of 1, concurrent drain + acquire, execute() edge cases |
 
 ### Test Fixtures (`conftest.py`)
 

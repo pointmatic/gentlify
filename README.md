@@ -31,36 +31,44 @@ throttle = Throttle(max_concurrency=5)
 
 async def main():
     for item in range(20):
-        async with throttle.acquire() as slot:
-            await call_api(item)
+        await throttle.execute(lambda slot: call_api(item))
 
 asyncio.run(main())
 ```
 
 If requests start failing, gentlify automatically halves concurrency, enters a cooling period, then gradually reaccelerates — all without any manual intervention.
 
-## Context Manager API
+## Execute API
 
-The primary API uses `acquire()` as an async context manager:
+`execute()` is the primary API — pass an async callable and get throttling, retry, and custom logic in one call:
 
 ```python
-async with throttle.acquire() as slot:
-    result = await call_api(item)
-    slot.record_tokens(result.token_count)  # optional token tracking
+# Simple — just pass a callable
+result = await throttle.execute(lambda slot: call_api(item))
+
+# With custom logic — token recording, result inspection
+async def my_task(slot):
+    result = await call_llm(prompt)
+    slot.record_tokens(result.usage.total_tokens)
+    return result.text
+
+text = await throttle.execute(my_task)
 ```
 
-On success, gentlify records the completion and checks whether to reaccelerate. On exception, it records the failure and may decelerate if the failure threshold is reached.
+The callable receives a `Slot` with:
+- `slot.record_tokens(count)` — report token consumption
+- `slot.attempt` — zero-indexed attempt number (for idempotency keys)
 
 ## Decorator API
 
-Wrap async functions directly:
+Wrap async functions directly — delegates to `execute()` internally:
 
 ```python
 @throttle.wrap
 async def call_api(item):
     return await httpx.post("/api", json=item)
 
-# Each call is automatically throttled
+# Each call is automatically throttled (with retry if configured)
 await call_api(my_item)
 ```
 
@@ -78,12 +86,15 @@ throttle = Throttle(
     token_budget=TokenBudget(max_tokens=100_000, window_seconds=60.0),
 )
 
-async with throttle.acquire() as slot:
+async def task(slot):
     result = await call_llm(prompt)
     slot.record_tokens(result.usage.total_tokens)
+    return result
+
+await throttle.execute(task)
 ```
 
-When the budget is exhausted, `acquire()` blocks until tokens expire from the rolling window.
+When the budget is exhausted, `execute()` blocks until tokens expire from the rolling window.
 
 ## Circuit Breaker
 
@@ -121,9 +132,7 @@ throttle = Throttle(
     ),
 )
 
-@throttle.wrap
-async def call_api(item):
-    return await httpx.post("/api", json=item)
+result = await throttle.execute(lambda slot: call_api(item))
 ```
 
 Retries happen inside the throttled slot, so concurrency accounting stays correct. Only the final failure (after all retries are exhausted) triggers throttle deceleration — intermediate failures just trigger backoff sleep.
@@ -143,6 +152,15 @@ retry = RetryConfig(
 ```
 
 Non-retryable exceptions propagate immediately without further attempts.
+
+**Idempotency note:** When retry is configured, your callable may be invoked up to `max_attempts` times. Use `slot.attempt` to build idempotency keys if needed:
+
+```python
+async def safe_write(slot):
+    return await post_api(item, idempotency_key=f"{item.id}-{slot.attempt}")
+
+await throttle.execute(safe_write)
+```
 
 ## Configuration
 
@@ -207,6 +225,18 @@ throttle = Throttle(
 )
 ```
 
+## Advanced: Manual Control
+
+For advanced use cases (middleware pipelines, conditional branching, batch operations), `acquire()` provides a low-level context manager. Retry does not apply — the body runs exactly once:
+
+```python
+async with throttle.acquire() as slot:
+    result = await call_api(item)
+    slot.record_tokens(result.usage.total_tokens)
+```
+
+For most use cases, prefer `execute()` or `@wrap`.
+
 ## Graceful Shutdown
 
 ```python
@@ -217,7 +247,7 @@ throttle.close()
 await throttle.drain()
 ```
 
-After `close()`, any new `acquire()` call raises `ThrottleClosed`. In-flight requests complete normally. `drain()` blocks until all in-flight requests finish.
+After `close()`, any new `execute()` or `acquire()` call raises `ThrottleClosed`. In-flight requests complete normally. `drain()` blocks until all in-flight requests finish.
 
 ## Snapshot
 

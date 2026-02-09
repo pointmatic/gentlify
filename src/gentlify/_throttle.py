@@ -117,10 +117,10 @@ class Throttle:
 
     @asynccontextmanager
     async def acquire(self) -> AsyncIterator[Slot]:
-        """Primary API: acquire a throttled slot.
+        """Advanced API: acquire a throttled slot as a context manager.
 
-        Note: Retry logic applies only to the ``wrap()`` decorator API.
-        Context manager blocks cannot be re-entered by the retry loop.
+        Retry does not apply — the body runs exactly once.  For automatic
+        retry, use ``execute()`` or ``@wrap``.
         """
         # 1. Check state
         if self._state in (ThrottleState.CLOSED, ThrottleState.DRAINING):
@@ -311,30 +311,73 @@ class Throttle:
         if self._token_bucket is not None:
             self._token_bucket.consume(count)
 
-    def wrap(
+    async def execute(
         self,
         fn: Any,
     ) -> Any:
-        """Decorator API: wrap an async function with acquire()."""
+        """Primary API: run an async callable inside a throttled slot with retry.
 
-        @functools.wraps(fn)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            async with self.acquire() as slot:
-                return await self._call_with_retry(fn, slot, *args, **kwargs)
+        *fn* receives a :class:`Slot` and must return an awaitable::
 
-        return wrapper
+            result = await throttle.execute(lambda slot: call_api(item))
 
-    async def _call_with_retry(self, fn: Any, slot: Slot, *args: Any, **kwargs: Any) -> Any:
-        """Call *fn* with retry logic if configured, otherwise call once."""
+        When retry is configured the callable may be invoked up to
+        ``max_attempts`` times.  Use ``slot.attempt`` for idempotency keys.
+        """
+        # 1. Check state
+        if self._state in (ThrottleState.CLOSED, ThrottleState.DRAINING):
+            raise ThrottleClosed()
+
+        # 2. Circuit breaker check
+        if self._circuit_breaker is not None:
+            self._circuit_breaker.check()
+
+        # 3. Acquire concurrency slot
+        await self._concurrency.acquire()
+
+        start = self._clock()
+        slot = Slot()
+        exc_occurred: BaseException | None = None
+
+        try:
+            # 4. Dispatch gate
+            await self._dispatch.wait()
+
+            # 5. Token budget
+            if self._token_bucket is not None:
+                await self._token_bucket.wait_for_budget()
+
+            # 6. Call fn(slot) with retry
+            return await self._call_fn_with_retry(fn, slot)
+
+        except BaseException as exc:
+            exc_occurred = exc
+            raise
+
+        finally:
+            duration = self._clock() - start
+
+            if exc_occurred is not None:
+                self._handle_failure(exc_occurred)
+            else:
+                self._handle_success(duration, slot.tokens_reported)
+
+            # Always release
+            self._concurrency.release()
+
+    async def _call_fn_with_retry(self, fn: Any, slot: Slot) -> Any:
+        """Call *fn(slot)* with retry logic if configured, otherwise call once."""
         if self._retry_handler is None:
-            return await fn(*args, **kwargs)
+            slot._set_attempt(0)
+            return await fn(slot)
 
         last_exc: BaseException | None = None
         max_attempts = self._retry_handler.max_attempts
 
         for attempt in range(max_attempts):
+            slot._set_attempt(attempt)
             try:
-                return await fn(*args, **kwargs)
+                return await fn(slot)
             except BaseException as exc:
                 last_exc = exc
 
@@ -372,6 +415,18 @@ class Throttle:
         # Should never reach here, but satisfy type checker
         assert last_exc is not None  # noqa: S101
         raise last_exc
+
+    def wrap(
+        self,
+        fn: Any,
+    ) -> Any:
+        """Decorator API: wrap an async function. Delegates to execute() internally."""
+
+        @functools.wraps(fn)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            return await self.execute(lambda slot: fn(*args, **kwargs))
+
+        return wrapper
 
     def close(self) -> None:
         """Signal that no new requests should be accepted."""

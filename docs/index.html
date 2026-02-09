@@ -337,16 +337,16 @@
 
 throttle = <span class="fn">Throttle</span>(max_concurrency=<span class="num">5</span>)
 
-<span class="kw">async def</span> <span class="fn">process</span>(items):
-    <span class="kw">async with</span> asyncio.<span class="fn">TaskGroup</span>() <span class="kw">as</span> tg:
-        <span class="kw">for</span> item <span class="kw">in</span> items:
-            tg.<span class="fn">create_task</span>(<span class="fn">call_one</span>(item))
+<span class="cm"># Simple &mdash; just pass a callable</span>
+result = <span class="kw">await</span> throttle.<span class="fn">execute</span>(<span class="kw">lambda</span> slot: <span class="fn">call_api</span>(item))
 
-<span class="kw">async def</span> <span class="fn">call_one</span>(item):
-    <span class="kw">async with</span> throttle.<span class="fn">acquire</span>() <span class="kw">as</span> slot:
-        result = <span class="kw">await</span> <span class="fn">call_api</span>(item)
-        slot.<span class="fn">record_tokens</span>(result.usage.total_tokens)
-    <span class="cm"># Success/failure recorded automatically</span></div>
+<span class="cm"># With custom logic &mdash; token recording, result inspection</span>
+<span class="kw">async def</span> <span class="fn">my_task</span>(slot):
+    result = <span class="kw">await</span> <span class="fn">call_llm</span>(prompt)
+    slot.<span class="fn">record_tokens</span>(result.usage.total_tokens)
+    <span class="kw">return</span> result.text
+
+text = <span class="kw">await</span> throttle.<span class="fn">execute</span>(my_task)</div>
   </section>
 
   <footer class="footer">
