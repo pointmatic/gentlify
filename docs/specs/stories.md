@@ -574,13 +574,13 @@ Restructure all documentation to lead with `execute()` as the primary API.
   - [x] Note: no removed APIs, `acquire()` and `wrap()` still work
 - [x] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
 
-### Story H.d: v2.0.0 Final Release [Planned]
+### Story H.d: v2.0.0 Final Release [Done]
 
 Final verification and version bump.
 
-- [ ] Final full test run: `pytest --cov=gentlify`
-- [ ] Final `mypy --strict src/gentlify`
-- [ ] Final `ruff check src/ tests/` and `ruff format --check src/ tests/`
-- [ ] Verify: coverage ≥ 95%
-- [ ] Bump version to `2.0.0` in `_version.py`, `pyproject.toml`, `tests/test_version.py`
-- [ ] Mark all Phase H stories as `[Done]`
+- [x] Final full test run: `pytest --cov=gentlify`
+- [x] Final `mypy --strict src/gentlify`
+- [x] Final `ruff check src/ tests/` and `ruff format --check src/ tests/`
+- [x] Verify: coverage ≥ 95%
+- [x] Bump version to `2.0.0` in `_version.py`, `pyproject.toml`, `tests/test_version.py`
+- [x] Mark all Phase H stories as `[Done]`
