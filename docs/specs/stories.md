@@ -483,37 +483,37 @@ Improve descriptions to be more concise and clear.
 - README restructured: Quick Start leads with `execute()`, `acquire()` moved to Advanced section
 - No removed public APIs — `acquire()` and `wrap()` continue to work as before
 
-### Story H.a: v2.0.0-alpha.1 Execute Method and Slot Callback [Planned]
+### Story H.a: v2.0.0-alpha.1 Execute Method and Slot Callback [Done]
 
 Add `throttle.execute(fn)` — the unified API that runs a user-provided async callable inside a throttled slot with retry.
 
-- [ ] Update `features.md`
-  - [ ] Add FR-13: Unified Execute API
-    - [ ] `execute(fn)` accepts an async callable `fn(slot) -> T`
-    - [ ] The callable receives a `Slot` instance for token recording and metadata
-    - [ ] Retry applies automatically if `RetryConfig` is configured
-    - [ ] The callable may be invoked up to `max_attempts` times on retryable failures
-    - [ ] Document idempotency responsibility: "Your callable may run multiple times. Ensure your operation is safe to retry."
-  - [ ] Update FR-8 (Context Manager API) to position `acquire()` as the advanced/escape-hatch API
-  - [ ] Update FR-9 (Decorator API) to note that `wrap()` delegates to `execute()` internally
-  - [ ] Update FR-12 (Built-in Retry) to note retry works with all three APIs: `execute()`, `wrap()`, and manual loops around `acquire()`
-- [ ] Update `tech_spec.md`
-  - [ ] Add `execute()` method signature: `async def execute(self, fn: Callable[[Slot], Awaitable[T]]) -> T`
-  - [ ] Document internal flow: acquire slot → call fn(slot) with retry loop → handle success/failure → release slot
-  - [ ] Update `wrap()` to show it delegates to `execute()`
-  - [ ] Add `attempt` attribute to `Slot` (zero-indexed, so developers can build idempotency keys)
-- [ ] Update `_slot.py`
-  - [ ] Add `attempt: int` property to `Slot` (default 0, set by retry loop)
-  - [ ] Add `_set_attempt(n)` internal method (not public API)
-- [ ] Update `_throttle.py`
-  - [ ] Add `execute(fn)` public method
-    - [ ] Acquires slot via internal `acquire()` flow (state check, circuit breaker, concurrency, dispatch, token budget)
-    - [ ] Calls `fn(slot)` inside retry loop (reuses `RetryHandler` logic)
-    - [ ] Sets `slot.attempt` before each invocation
-    - [ ] On success: records success, releases concurrency
-    - [ ] On final failure: records failure (triggers deceleration), releases concurrency
-    - [ ] Intermediate failures: notify circuit breaker, emit retry event, backoff sleep
-  - [ ] Refactor `wrap()` to delegate to `execute()`:
+- [x] Update `features.md`
+  - [x] Add FR-13: Unified Execute API
+    - [x] `execute(fn)` accepts an async callable `fn(slot) -> T`
+    - [x] The callable receives a `Slot` instance for token recording and metadata
+    - [x] Retry applies automatically if `RetryConfig` is configured
+    - [x] The callable may be invoked up to `max_attempts` times on retryable failures
+    - [x] Document idempotency responsibility: "Your callable may run multiple times. Ensure your operation is safe to retry."
+  - [x] Update FR-8 (Context Manager API) to position `acquire()` as the advanced/escape-hatch API
+  - [x] Update FR-9 (Decorator API) to note that `wrap()` delegates to `execute()` internally
+  - [x] Update FR-12 (Built-in Retry) to note retry works with all three APIs: `execute()`, `wrap()`, and manual loops around `acquire()`
+- [x] Update `tech_spec.md`
+  - [x] Add `execute()` method signature: `async def execute(self, fn: Callable[[Slot], Awaitable[T]]) -> T`
+  - [x] Document internal flow: acquire slot → call fn(slot) with retry loop → handle success/failure → release slot
+  - [x] Update `wrap()` to show it delegates to `execute()`
+  - [x] Add `attempt` attribute to `Slot` (zero-indexed, so developers can build idempotency keys)
+- [x] Update `_slot.py`
+  - [x] Add `attempt: int` property to `Slot` (default 0, set by retry loop)
+  - [x] Add `_set_attempt(n)` internal method (not public API)
+- [x] Update `_throttle.py`
+  - [x] Add `execute(fn)` public method
+    - [x] Acquires slot via internal `acquire()` flow (state check, circuit breaker, concurrency, dispatch, token budget)
+    - [x] Calls `fn(slot)` inside retry loop (reuses `RetryHandler` logic)
+    - [x] Sets `slot.attempt` before each invocation
+    - [x] On success: records success, releases concurrency
+    - [x] On final failure: records failure (triggers deceleration), releases concurrency
+    - [x] Intermediate failures: notify circuit breaker, emit retry event, backoff sleep
+  - [x] Refactor `wrap()` to delegate to `execute()`:
     ```python
     def wrap(self, fn):
         @functools.wraps(fn)
@@ -521,37 +521,37 @@ Add `throttle.execute(fn)` — the unified API that runs a user-provided async c
             return await self.execute(lambda slot: fn(*args, **kwargs))
         return wrapper
     ```
-  - [ ] Remove `_call_with_retry()` (logic absorbed into `execute()`)
-  - [ ] Update `acquire()` docstring: "Low-level API for advanced use cases. For most users, prefer `execute()` or `@wrap`."
-- [ ] Export any new public types from `__init__.py` if needed
-- [ ] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
+  - [x] Remove `_call_with_retry()` (logic absorbed into `execute()`)
+  - [x] Update `acquire()` docstring: "Low-level API for advanced use cases. For most users, prefer `execute()` or `@wrap`."
+- [x] Export any new public types from `__init__.py` if needed
+- [x] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
 
-### Story H.b: v2.0.0-alpha.2 Execute Tests [Planned]
+### Story H.b: v2.0.0-alpha.2 Execute Tests [Done]
 
 Comprehensive tests for the `execute()` API.
 
-- [ ] Add `tests/test_execute.py`
-  - [ ] **Basic flow:** `execute(fn)` calls fn, returns result, records success
-  - [ ] **Token recording:** fn calls `slot.record_tokens()`, tokens are tracked
-  - [ ] **Failure recording:** fn raises, exception propagates, failure recorded
-  - [ ] **Retry succeeds:** fn fails then succeeds, retry transparent to caller
-  - [ ] **Retry exhausted:** fn fails all attempts, final exception propagates, single deceleration
-  - [ ] **Retry with slot.attempt:** verify `slot.attempt` increments on each retry
-  - [ ] **Retryable predicate:** non-retryable exception propagates immediately
-  - [ ] **Retry events:** `on_state_change` receives `retry` events with attempt info
-  - [ ] **Circuit breaker interaction:** circuit opens during retry, `CircuitOpenError` propagates
-  - [ ] **No retry configured:** `execute()` calls fn exactly once, no retry
-  - [ ] **Custom logic in callback:** fn inspects result, conditionally records tokens, returns transformed value
-  - [ ] **Concurrent execute calls:** multiple `execute()` calls respect concurrency limits
-  - [ ] **Execute with closed throttle:** raises `ThrottleClosed`
-  - [ ] **Execute with token budget:** blocks when budget exhausted
-- [ ] Update existing `wrap()` tests to verify `wrap()` still works identically (regression)
-- [ ] Add edge cases to `tests/test_edge_cases.py`
-  - [ ] `execute()` with `max_attempts=1` — no retry, single call
-  - [ ] `execute()` callback raises non-Exception BaseException (e.g., `KeyboardInterrupt`) — propagates immediately
-  - [ ] `execute()` with both retry and failure_predicate — interactions are correct
-- [ ] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
-- [ ] Verify: coverage ≥ 95%
+- [x] Add `tests/test_execute.py`
+  - [x] **Basic flow:** `execute(fn)` calls fn, returns result, records success
+  - [x] **Token recording:** fn calls `slot.record_tokens()`, tokens are tracked
+  - [x] **Failure recording:** fn raises, exception propagates, failure recorded
+  - [x] **Retry succeeds:** fn fails then succeeds, retry transparent to caller
+  - [x] **Retry exhausted:** fn fails all attempts, final exception propagates, single deceleration
+  - [x] **Retry with slot.attempt:** verify `slot.attempt` increments on each retry
+  - [x] **Retryable predicate:** non-retryable exception propagates immediately
+  - [x] **Retry events:** `on_state_change` receives `retry` events with attempt info
+  - [x] **Circuit breaker interaction:** circuit opens during retry, `CircuitOpenError` propagates
+  - [x] **No retry configured:** `execute()` calls fn exactly once, no retry
+  - [x] **Custom logic in callback:** fn inspects result, conditionally records tokens, returns transformed value
+  - [x] **Concurrent execute calls:** multiple `execute()` calls respect concurrency limits
+  - [x] **Execute with closed throttle:** raises `ThrottleClosed`
+  - [x] **Execute with token budget:** blocks when budget exhausted
+- [x] Update existing `wrap()` tests to verify `wrap()` still works identically (regression)
+- [x] Add edge cases to `tests/test_edge_cases.py`
+  - [x] `execute()` with `max_attempts=1` — no retry, single call
+  - [x] `execute()` callback raises non-Exception BaseException (e.g., `KeyboardInterrupt`) — propagates immediately
+  - [x] `execute()` with both retry and failure_predicate — interactions are correct
+- [x] Verify: `pytest`, `mypy --strict`, `ruff check`, `ruff format --check` all pass
+- [x] Verify: coverage ≥ 95%
 
 ### Story H.c: v2.0.0-rc.1 Documentation Overhaul [Planned]
 

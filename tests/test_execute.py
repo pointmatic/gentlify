@@ -307,9 +307,89 @@ class TestExecuteConcurrency:
         assert max_concurrent <= 2
 
 
+class TestExecuteTokenBudgetBlocking:
+    async def test_execute_blocks_when_budget_exhausted(self) -> None:
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            jitter_fraction=0.0,
+            token_budget=TokenBudget(max_tokens=10, window_seconds=60.0),
+        )
+
+        async def consume_all(slot):  # type: ignore[no-untyped-def]
+            slot.record_tokens(10)
+            return "done"
+
+        # First call consumes the entire budget
+        await t.execute(consume_all)
+        snap = t.snapshot()
+        assert snap.tokens_remaining == 0
+
+
 class TestExecuteClosedThrottle:
     async def test_execute_raises_when_closed(self) -> None:
         t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
         t.close()
         with pytest.raises(ThrottleClosed):
             await t.execute(lambda slot: asyncio.sleep(0))
+
+
+class TestWrapRegressionAfterExecuteRefactor:
+    """Verify wrap() still works identically after being refactored to delegate to execute()."""
+
+    async def test_wrap_returns_result(self) -> None:
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
+
+        @t.wrap
+        async def fn() -> str:
+            return "hello"
+
+        assert await fn() == "hello"
+
+    async def test_wrap_records_success(self) -> None:
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
+
+        @t.wrap
+        async def fn() -> str:
+            return "ok"
+
+        await fn()
+        assert t.snapshot().completed_tasks == 1
+
+    async def test_wrap_failure_propagates(self) -> None:
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
+
+        @t.wrap
+        async def fn() -> str:
+            raise ValueError("boom")
+
+        with pytest.raises(ValueError, match="boom"):
+            await fn()
+
+    async def test_wrap_with_retry(self) -> None:
+        call_count = 0
+        t = Throttle(
+            max_concurrency=5,
+            min_dispatch_interval=0.0,
+            retry=RetryConfig(max_attempts=3, backoff="fixed", base_delay=0.0),
+        )
+
+        @t.wrap
+        async def flaky() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 2:
+                raise ValueError("transient")
+            return "ok"
+
+        assert await flaky() == "ok"
+        assert call_count == 2
+
+    async def test_wrap_preserves_function_name(self) -> None:
+        t = Throttle(max_concurrency=5, min_dispatch_interval=0.0)
+
+        @t.wrap
+        async def my_special_function() -> str:
+            return "ok"
+
+        assert my_special_function.__name__ == "my_special_function"
