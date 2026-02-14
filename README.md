@@ -1,3 +1,5 @@
+![Gentlify](docs/images/gentlify_header_readme.png)
+
 # gentlify
 
 [![CI](https://github.com/pointmatic/gentlify/actions/workflows/ci.yml/badge.svg)](https://github.com/pointmatic/gentlify/actions/workflows/ci.yml)

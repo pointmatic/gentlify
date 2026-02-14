@@ -21,7 +21,7 @@ Tame the angry APIs and make them purr.
 
 Adaptive async rate limiting for Python
 
-### Friendly Brief Description (with one-liner)
+### Friendly Brief Description (follows one-liner)
 
 Closed-loop feedback control for API concurrency. When APIs push back, gentlify slows down. When pressure eases, it speeds up.
 
