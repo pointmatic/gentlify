@@ -11,7 +11,13 @@
 
 Adaptive async rate limiting for Python, closed-loop feedback control for API concurrency.
 
-**Zero dependencies. Asyncio-native. Fully typed.**
+See https://pointmatic.github.io/gentlify/ for more information.
+
+## Why gentlify?
+
+- Zero dependencies
+- Asyncio-native
+- Fully typed
 
 Gentlify automatically adjusts concurrency and dispatch rate in response to failures, so your application backs off when an API is struggling and speeds up when it recovers — without manual tuning.
 
