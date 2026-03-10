@@ -1,15 +1,23 @@
-# Generic
+# macOS only
 .DS_Store
-__pycache__
-.pyve/testenv
 
-# Project
-.archive
+# Python build and test artifacts
+__pycache__
+*.egg-info
 .coverage
+coverage.xml
 htmlcov/
 .pytest_cache/
 
-# removed and added with `pyve --init --force`
-.venv
-.env
+# Pyve virtual environment
+.pyve/testenv
 .envrc
+.env
+.venv
+# Generic
+
+# Project
+.archive
+/site/
+
+# removed and added with `pyve --init --force`
