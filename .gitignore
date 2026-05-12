@@ -21,3 +21,10 @@ htmlcov/
 /site/
 
 # removed and added with `pyve --init --force`
+
+# project-guide
+/docs/project-guide/.metadata.yml
+/docs/project-guide/README.md
+/docs/project-guide/developer/
+/docs/project-guide/templates/
+/docs/project-guide/**/*.bak.*
